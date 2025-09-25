@@ -1,0 +1,173 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  name             String?
+  email            String            @unique
+  password         String
+  role             Role              @default(CANDIDATE)
+  status           Boolean           @default(true)
+  candidateProfile CandidateProfile?
+  Company          Company[]
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model CandidateProfile {
+  id                  Int                   @id @default(autoincrement())
+  fullName            String
+  gender              Gender
+  phone               String                @unique
+  cv                  String
+  birthDate           DateTime              @db.Date
+  address             String
+  openToWork          Boolean               @default(false)
+  status              Boolean               @default(true)
+  user                User                  @relation(fields: [userId], references: [id])
+  userId              Int                   @unique
+  CandidateLanguage   CandidateLanguage[]
+  CandidateEducation  CandidateEducation[]
+  CandidateSkill      CandidateSkill[]
+  CandidateExperience CandidateExperience[]
+}
+
+model Language {
+  name String @id
+
+  CandidateLanguage CandidateLanguage[]
+}
+
+enum Level {
+  NATIVE
+  FLUENT
+  BASIC
+}
+
+model CandidateLanguage {
+  level              Level            @default(BASIC)
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  candidateProfileId Int
+  language           Language         @relation(fields: [languageName], references: [name])
+  languageName       String
+
+  @@unique([candidateProfileId, languageName])
+}
+
+model Education {
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  map                String
+  CandidateEducation CandidateEducation[]
+}
+
+enum Degree {
+  BACHELOR
+  MASTER
+  PHD
+}
+
+model CandidateEducation {
+  major              String
+  degree             Degree           @default(BACHELOR)
+  yearStart          Int
+  yearEnd            Int
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  candidateProfileId Int
+  education          Education        @relation(fields: [educationId], references: [id])
+  educationId        Int
+
+  @@id([candidateProfileId, educationId])
+}
+
+model Skill {
+  id             Int              @id @default(autoincrement())
+  name           String
+  CandidateSkill CandidateSkill[]
+}
+
+model CandidateSkill {
+  id                 Int              @id @default(autoincrement())
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  candidateProfileId Int
+  skill              Skill            @relation(fields: [skillId], references: [id])
+  skillId            Int
+
+  @@unique([candidateProfileId, skillId])
+}
+
+enum WorkPlace {
+  ONSITE
+  REMOTE
+  HYBRID
+}
+
+model CandidateExperience {
+  id               Int       @id @default(autoincrement())
+  companyName      String
+  department       String
+  startDate        DateTime  @db.Date
+  endDate          DateTime? @db.Date
+  position         String
+  description      String
+  currentlyWorking Boolean   @default(false)
+  workPlace        WorkPlace @default(ONSITE)
+  location         String
+
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  candidateProfileId Int
+
+  @@unique([id, candidateProfileId])
+}
+
+enum TeamSizeRange {
+  ZERO_TO_ONE
+  TWO_TO_TEN
+  ELEVEN_TO_FIFTY
+  FIFTY_ONE_TO_TWO_HUNDRED
+  TWO_HUNDRED_ONE_TO_FIVE_HUNDRED
+  FIVE_HUNDRED_ONE_TO_ONE_THOUSAND
+  OVER_ONE_THOUSAND
+}
+
+model Company {
+  id              Int           @id @default(autoincrement())
+  name            String
+  description     String
+  location        String
+  address         String?
+  mapLink         String?
+  websiteUrl      String?
+  teamSizeLabel   TeamSizeRange
+  totalEmployees  Int
+  industry        String
+  establishedDate DateTime
+  isApproved      Boolean       @default(false)
+  views           Int           @default(0)
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+}
