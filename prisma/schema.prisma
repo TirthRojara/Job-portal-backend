@@ -154,19 +154,19 @@ enum TeamSizeRange {
 }
 
 model Company {
-  id              Int           @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   name            String
   description     String
   location        String
   address         String?
   mapLink         String?
   websiteUrl      String?
-  teamSizeLabel   TeamSizeRange
+  teamSizeLabel   TeamSizeRange?
   totalEmployees  Int
   industry        String
   establishedDate DateTime
-  isApproved      Boolean       @default(false)
-  views           Int           @default(0)
+  isApproved      Boolean        @default(false)
+  views           Int?           @default(0)
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
