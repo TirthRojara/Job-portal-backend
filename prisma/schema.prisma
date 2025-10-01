@@ -170,4 +170,14 @@ model Company {
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
+
+  CompanyImage CompanyImage[]
+}
+
+model CompanyImage {
+  id       Int    @id @default(autoincrement())
+  imageUrl String
+
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId Int
 }
