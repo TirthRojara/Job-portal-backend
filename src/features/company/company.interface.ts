@@ -6,7 +6,6 @@ export interface ICompanyCreateUpdate {
   mapLink?: string;
   websiteUrl?: string;
   totalEmployees: number;
-  industry: string;
   establishedDate: Date;
 }
 

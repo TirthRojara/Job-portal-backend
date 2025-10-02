@@ -163,7 +163,6 @@ model Company {
   websiteUrl      String?
   teamSizeLabel   TeamSizeRange?
   totalEmployees  Int
-  industry        String
   establishedDate DateTime
   isApproved      Boolean        @default(false)
   views           Int?           @default(0)

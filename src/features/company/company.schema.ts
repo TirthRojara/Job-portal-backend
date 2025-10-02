@@ -8,7 +8,6 @@ export const companyCreateSchema = Joi.object({
   mapLink: Joi.string().optional(),
   websiteUrl: Joi.string().optional(),
   totalEmployees: Joi.number().integer().min(0).required(),
-  industry: Joi.string().required(),
   establishedDate: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/) // correct usage for string schemas
     .optional()
@@ -23,7 +22,6 @@ export const companyUpdateSchema = Joi.object({
   mapLink: Joi.string().optional(),
   websiteUrl: Joi.string().optional(),
   totalEmployees: Joi.number().integer().min(0).optional(),
-  industry: Joi.string().optional(),
   establishedDate: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/) // correct usage for string schemas
     .optional()
@@ -36,7 +34,6 @@ export const companyUpdateSchema = Joi.object({
   'mapLink',
   'websiteUrl',
   'totalEmployees',
-  'industry',
   'establishedDate'
 );
 
