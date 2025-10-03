@@ -57,11 +57,25 @@ async function main() {
     });
   }
 
+  async function createIndustryData() {
+    const data = [
+      { name: 'IT' },
+      { name: 'Finance' },
+      { name: 'Healthcare' },
+      { name: 'Education' },
+      { name: 'Retail' }
+    ];
 
-  createLanguageData();
-  createEducationData();
-  createSkillData();
+    await prisma.industry.createMany({
+      data,
+      skipDuplicates: true
+    });
+  }
 
+  // createLanguageData();
+  // createEducationData();
+  // createSkillData();
+  // createIndustryData();
 }
 
 main()
