@@ -72,10 +72,20 @@ async function main() {
     });
   }
 
+  async function createJobRoleData() {
+    const data = [{ name: 'internship' }, { name: 'fresher' }, { name: 'junior' }, { name: 'senior' }];
+
+    await prisma.jobRole.createMany({
+      data,
+      skipDuplicates: true
+    });
+  }
+
   // createLanguageData();
   // createEducationData();
   // createSkillData();
   // createIndustryData();
+  // createJobRoleData();
 }
 
 main()

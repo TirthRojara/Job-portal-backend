@@ -5,7 +5,7 @@ import { NotFountException } from '../cores/error.cores';
 export async function getPaginationAndFilter({ page, limit, filter, filterFields, entity, additionCondition }: any) {
   let skip: number = (page - 1) * limit;
 
-  console.log('filter in helper: ', filter);
+  // console.log('filter in helper: ', filter);
 
   const condition = filterFields.map((field: string) => {
     return { [field]: { contains: filter, mode: 'insensitive' } };
@@ -22,7 +22,7 @@ export async function getPaginationAndFilter({ page, limit, filter, filterFields
       } as Prisma.CompanyWhereInput)
     : {};
 
-  console.log('where in helper: ', where , ' additionCondition: ', additionCondition );
+  // console.log('where in helper: ', where , ' additionCondition: ', additionCondition );
 
   const [data, totalCount] = await Promise.all([
     (prisma[entity] as any).findMany({

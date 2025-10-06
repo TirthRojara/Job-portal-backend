@@ -199,3 +199,8 @@ model CompanyIndustry {
 
   @@unique([companyId, industryId])
 }
+
+model JobRole {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+}
