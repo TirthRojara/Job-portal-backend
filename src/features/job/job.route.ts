@@ -1,0 +1,53 @@
+import express from 'express';
+import { validateSchema } from '~/globals/middlewares/validateSchema.middleware';
+import { verifyUser } from '~/globals/middlewares/verifyUser.middleware';
+import { jobCreateSchema, jobUpdateSchema, jobUpdateStatusSchema } from './job.schema';
+import { allowAccess } from '~/globals/middlewares/allowAccess.middleware';
+import asyncWrapper from '~/globals/cores/asyncWrapper.core';
+import { jobController } from './job.controller';
+
+const jobRoute = express.Router();
+
+jobRoute.post(
+  '/:companyId',
+  verifyUser,
+  allowAccess('RECRUITER'),
+  validateSchema(jobCreateSchema),
+  asyncWrapper(jobController.create)
+);
+
+jobRoute.get(
+  '/readAll',
+  verifyUser,
+  asyncWrapper(jobController.readAll)
+);
+
+jobRoute.get(
+  '/me',
+  verifyUser,
+  allowAccess('RECRUITER'),
+  asyncWrapper(jobController.readAllForRecruiter)
+);
+
+jobRoute.get(
+  '/:id',
+  verifyUser,
+  asyncWrapper(jobController.readOne)
+);
+
+jobRoute.patch(
+  '/me/:id/:companyId',
+  verifyUser,
+  allowAccess('RECRUITER'),
+  validateSchema(jobUpdateSchema),
+  asyncWrapper(jobController.update)
+);
+
+jobRoute.delete(
+  '/me/delete/:id/:companyId',
+  verifyUser,
+  allowAccess('RECRUITER'),
+  asyncWrapper(jobController.remove)
+);
+
+export default jobRoute;

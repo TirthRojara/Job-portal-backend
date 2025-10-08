@@ -2,7 +2,15 @@ import { Prisma } from '@prisma/client';
 import prisma from '~/prisma';
 import { NotFountException } from '../cores/error.cores';
 
-export async function getPaginationAndFilter({ page, limit, filter, filterFields, entity, additionCondition }: any) {
+export async function getPaginationAndFilter({
+  page,
+  limit,
+  filter,
+  filterFields,
+  entity,
+  additionCondition,
+  orderCondition = {}
+}: any) {
   let skip: number = (page - 1) * limit;
 
   // console.log('filter in helper: ', filter);
@@ -16,17 +24,18 @@ export async function getPaginationAndFilter({ page, limit, filter, filterFields
   // ]
 
   const where = filter
-    ? ({
+    ? {
         ...additionCondition,
         OR: condition
-      } as Prisma.CompanyWhereInput)
+      }
     : {};
 
-  // console.log('where in helper: ', where , ' additionCondition: ', additionCondition );
+  console.log('where in helper: ', where, ' additionCondition: ', additionCondition);
 
   const [data, totalCount] = await Promise.all([
     (prisma[entity] as any).findMany({
       where: { ...additionCondition, ...where },
+      orderBy: { ...orderCondition},
       skip,
       take: limit
     }),

@@ -29,6 +29,7 @@ model User {
   status           Boolean           @default(true)
   candidateProfile CandidateProfile?
   Company          Company[]
+  Job              Job[]
 }
 
 enum Gender {
@@ -172,6 +173,7 @@ model Company {
 
   CompanyImage    CompanyImage[]
   CompanyIndustry CompanyIndustry[]
+  Job             Job[]
 }
 
 model CompanyImage {
@@ -203,4 +205,39 @@ model CompanyIndustry {
 model JobRole {
   id   Int    @id @default(autoincrement())
   name String @unique
+  Job  Job[]
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REJECTED
+}
+
+model Job {
+  id                  Int       @id @default(autoincrement())
+  title               String
+  description         String
+  responsibilities    String
+  requirements        String
+  location            String
+  workplace           WorkPlace
+  status              JobStatus
+  salaryMin           Int
+  salaryMax           Int
+  postedAt            DateTime  @default(now()) @db.Timestamp
+  applicationDeadline DateTime  @db.Date
+  updateAt            DateTime? @updatedAt
+  totalview           Int       @default(0)
+  isDeleted           Boolean   @default(false)
+
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId Int
+
+  postBy   User @relation(fields: [postById], references: [id])
+  postById Int
+
+  jobRole   JobRole @relation(fields: [jobRoleId], references: [id])
+  jobRoleId Int
 }
