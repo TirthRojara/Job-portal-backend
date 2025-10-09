@@ -135,6 +135,16 @@ class JobService {
     return job;
   }
 
+  public async findJobByUser(id: number, userId: number): Promise<Job> {
+    const job = await prisma.job.findFirst({
+      where: { id, postById: userId }
+    });
+
+    if (!job) throw new NotFountException(`Can't find job with id: ${id} for user: ${userId}`);
+
+    return job;
+  }
+
   public async update(id: number, companyId: number, currentUser: UserPayLoad, requestBody: IJob): Promise<Job> {
     const { applicationDeadline, ...rest } = requestBody;
 

@@ -10,7 +10,7 @@ class CandidateSkillService {
     return skills;
   }
 
-  private async findSkill(id: number): Promise<Skill> {
+  public async findSkill(id: number): Promise<Skill> {
     const skill = await prisma.skill.findUnique({
       where: { id }
     });
