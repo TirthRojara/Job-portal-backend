@@ -81,11 +81,27 @@ async function main() {
     });
   }
 
+  async function createBenefitData() {
+    const data = [
+      { name: 'medical converage' },
+      { name: 'dental insurance' },
+      { name: 'vision insurance' },
+      { name: 'life insurance' },
+      { name: 'mental health coverage' }
+    ];
+
+    await prisma.benefit.createMany({
+      data,
+      skipDuplicates: true
+    });
+  }
+
   // createLanguageData();
   // createEducationData();
   // createSkillData();
   // createIndustryData();
   // createJobRoleData();
+  // createBenefitData();
 }
 
 main()

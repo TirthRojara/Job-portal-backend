@@ -242,7 +242,8 @@ model Job {
   jobRole   JobRole @relation(fields: [jobRoleId], references: [id])
   jobRoleId Int
 
-  JobSkill JobSkill[]
+  JobSkill   JobSkill[]
+  JobBenefit JobBenefit[]
 }
 
 model JobSkill {
@@ -253,4 +254,19 @@ model JobSkill {
   skillId Int
 
   @@id([jobId, skillId])
+}
+
+model Benefit {
+  name       String       @id
+  JobBenefit JobBenefit[]
+}
+
+model JobBenefit {
+  job   Job @relation(fields: [jobId], references: [id])
+  jobId Int
+
+  benefit     Benefit @relation(fields: [benefitName], references: [name])
+  benefitName String
+
+  @@id([jobId, benefitName])
 }

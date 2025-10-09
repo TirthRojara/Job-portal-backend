@@ -7,6 +7,7 @@ import candidateSkillRoute from '~/features/candidate-skill/candidate-skill.rout
 import companyImageRoute from '~/features/company-image/company-image.route';
 import companyIndustryRoute from '~/features/company-industry/company-industry.route';
 import companyRoute from '~/features/company/company.route';
+import jobBenefitRoute from '~/features/job-benefit/job-benefit.route';
 import jobRoleRoute from '~/features/job-role/job-role.route';
 import jobSkillRoute from '~/features/job-skill/job-skill.route';
 import jobRoute from '~/features/job/job.route';
@@ -27,6 +28,7 @@ function appRoutes(app: Application) {
   app.use('/api/v1/job-role', jobRoleRoute);
   app.use('/api/v1/job', jobRoute);
   app.use('/api/v1/job-skill', jobSkillRoute);
+  app.use('/api/v1/job-benefit', jobBenefitRoute);
 }
 
 export default appRoutes;
