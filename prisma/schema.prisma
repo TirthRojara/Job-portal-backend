@@ -39,21 +39,24 @@ enum Gender {
 }
 
 model CandidateProfile {
-  id                  Int                   @id @default(autoincrement())
-  fullName            String
-  gender              Gender
-  phone               String                @unique
-  cv                  String
-  birthDate           DateTime              @db.Date
-  address             String
-  openToWork          Boolean               @default(false)
-  status              Boolean               @default(true)
-  user                User                  @relation(fields: [userId], references: [id])
-  userId              Int                   @unique
+  id         Int      @id @default(autoincrement())
+  fullName   String
+  gender     Gender
+  phone      String   @unique
+  cv         String
+  birthDate  DateTime @db.Date
+  address    String
+  openToWork Boolean  @default(false)
+  status     Boolean  @default(true)
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+
   CandidateLanguage   CandidateLanguage[]
   CandidateEducation  CandidateEducation[]
   CandidateSkill      CandidateSkill[]
   CandidateExperience CandidateExperience[]
+  Apply               Apply[]
 }
 
 model Language {
@@ -244,6 +247,7 @@ model Job {
 
   JobSkill   JobSkill[]
   JobBenefit JobBenefit[]
+  Apply      Apply[]
 }
 
 model JobSkill {
@@ -269,4 +273,25 @@ model JobBenefit {
   benefitName String
 
   @@id([jobId, benefitName])
+}
+
+enum ApplyStatus {
+  PENDING
+  VIEWED
+  SELECTED
+  NOTSELECT
+  INTOUCH
+}
+
+model Apply {
+  applyDate DateTime    @default(now()) @db.Timestamp
+  status    ApplyStatus @default(PENDING)
+
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  candidateProfileId Int
+
+  job   Job @relation(fields: [jobId], references: [id])
+  jobId Int
+
+  @@id([candidateProfileId, jobId])
 }

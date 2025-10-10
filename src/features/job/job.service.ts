@@ -29,20 +29,32 @@ class JobService {
     page,
     limit,
     filter,
-    salaryMin
+    salaryMin,
+    JobStatus
   }: {
     page: number;
     limit: number;
     filter: string;
     salaryMin: number;
+    JobStatus: string | null;
   }) {
+    const additionConditionQuery: any = {
+      salaryMin: { gte: salaryMin },
+      isDeleted: false
+    };
+
+    if (JobStatus && JobStatus.trim() !== '') {
+      additionConditionQuery.status = JobStatus; // only add valid status filter
+    }
+
     const { data, totalCount, totalPages } = await getPaginationAndFilter({
       page,
       limit,
       filter,
       filterFields: ['title', 'description'],
       entity: 'job',
-      additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false },
+      // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
+      additionCondition: additionConditionQuery,
       orderCondition: { postedAt: 'desc' }
     });
 
@@ -125,7 +137,7 @@ class JobService {
     return job;
   }
 
-  private async findOne(id: number, companyId: number, userId: number): Promise<Job> {
+  public async findOne(id: number, companyId: number, userId: number): Promise<Job> {
     const job = await prisma.job.findFirst({
       where: { id, companyId, postById: userId }
     });
@@ -187,6 +199,20 @@ class JobService {
         isDeleted: true
       }
     });
+  }
+
+  public async findOneActive(jobId: number) {
+    const job = await prisma.job.findFirst({
+      where: {
+        id: jobId,
+        status: 'ACTIVE',
+        isDeleted: false
+      }
+    });
+
+    if (!job) throw new NotFountException(`This job is no longer active or exist`);
+
+    return job;
   }
 }
 

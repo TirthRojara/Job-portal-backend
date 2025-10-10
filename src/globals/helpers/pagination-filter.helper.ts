@@ -9,7 +9,9 @@ export async function getPaginationAndFilter({
   filterFields,
   entity,
   additionCondition,
-  orderCondition = {}
+  orderCondition = {},
+  include = {},
+  select = {}
 }: any) {
   let skip: number = (page - 1) * limit;
 
@@ -32,12 +34,31 @@ export async function getPaginationAndFilter({
 
   console.log('where in helper: ', where, ' additionCondition: ', additionCondition);
 
+  const queryOptions: any = {
+    where: { ...additionCondition, ...where },
+    orderBy: { ...orderCondition },
+    skip,
+    take: limit
+  };
+
+  if (Object.keys(select).length > 0) {
+    queryOptions.select = select;
+  } else if (Object.keys(include).length > 0) {
+    queryOptions.include = include;
+  }
+
+  console.log(queryOptions);
+
   const [data, totalCount] = await Promise.all([
     (prisma[entity] as any).findMany({
-      where: { ...additionCondition, ...where },
-      orderBy: { ...orderCondition},
-      skip,
-      take: limit
+      // where: { ...additionCondition, ...where },
+      // orderBy: { ...orderCondition },
+      // select,
+      // include,
+      // skip,
+      // take: limit
+
+      ...queryOptions
     }),
     (prisma[entity] as any).count({
       where: { ...additionCondition, ...where }
