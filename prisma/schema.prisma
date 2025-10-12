@@ -295,3 +295,11 @@ model Apply {
 
   @@id([candidateProfileId, jobId])
 }
+
+model Package {
+  id           Int     @id @default(autoincrement())
+  label        String
+  price        Float
+  jobPostLimit Int
+  isActive     Boolean @default(true)
+}
