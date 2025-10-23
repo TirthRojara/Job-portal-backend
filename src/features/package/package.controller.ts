@@ -40,7 +40,20 @@ class PackageController {
   }
 
   public async readOneForRecruiter(req: Request, res: Response) {
-    const pkg = await packageService.readOneForRecruiter(parseInt(req.params.id));
+
+
+    console.log('Request param id:', req.params.id);
+    const packageId = parseInt(req.params.id);
+    console.log('Parsed packageId:', packageId);
+
+    if (isNaN(packageId)) {
+      return res.status(400).json({ message: 'Invalid package Id' });
+    }
+
+
+
+    const pkg = await packageService.readOneForRecruiter(packageId);
+    // const pkg = await packageService.readOneForRecruiter(parseInt(req.params.id));
 
     return res.status(HTTP_STATUS.OK).json({
       message: 'Get package detail successfully',

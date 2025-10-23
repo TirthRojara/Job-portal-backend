@@ -21,15 +21,17 @@ enum Role {
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
+  id               Int                @id @default(autoincrement())
   name             String?
-  email            String            @unique
+  email            String             @unique
   password         String
-  role             Role              @default(CANDIDATE)
-  status           Boolean           @default(true)
+  role             Role               @default(CANDIDATE)
+  status           Boolean            @default(true)
   candidateProfile CandidateProfile?
   Company          Company[]
   Job              Job[]
+  RecruiterPackage RecruiterPackage[]
+  Order            Order[]
 }
 
 enum Gender {
@@ -297,9 +299,53 @@ model Apply {
 }
 
 model Package {
-  id           Int     @id @default(autoincrement())
-  label        String
-  price        Float
-  jobPostLimit Int
-  isActive     Boolean @default(true)
+  id               Int                @id @default(autoincrement())
+  label            String
+  price            Float
+  jobPostLimit     Int
+  isActive         Boolean            @default(true)
+  RecruiterPackage RecruiterPackage[]
+  Order            Order[]
+}
+
+model RecruiterPackage {
+  id        Int      @id @default(autoincrement())
+  startDate DateTime @default(now())
+  endDate   DateTime @db.Date
+
+  recruiter   User @relation(fields: [recruiterId], references: [id])
+  recruiterId Int
+
+  package   Package @relation(fields: [packageId], references: [id])
+  packageId Int
+}
+
+enum OrderStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  totalPrice Float       @default(0)
+  status     OrderStatus @default(PENDING)
+
+  razorpayOrderId   String? @unique
+  razorpayReceiptId String? @unique
+  razorpayPaymentId String? @unique
+  razorpaySignature String?
+
+  currency  String?  @default("INR")
+  attempts  Int?     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recruiter   User @relation(fields: [recruiterId], references: [id])
+  recruiterId Int
+
+  package   Package @relation(fields: [packageId], references: [id])
+  packageId Int
 }

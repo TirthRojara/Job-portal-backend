@@ -4,19 +4,33 @@ import { IJob } from './job.interface';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import { Job, JobStatus } from '@prisma/client';
 import { NotFountException } from '~/globals/cores/error.cores';
-import { serializeData } from '~/globals/helpers/serializeData.helper';
 import { jobRoleService } from '../job-role/job-role.service';
+import { recruiterPackageService } from '../recruiter-package/recruiter-package.service';
 
 class JobService {
   public async create(requestBody: IJob, currentUser: UserPayLoad, companyId: number) {
-    const { applicationDeadline, ...rest } = requestBody;
+    const { applicationDeadline,jobRoleId, ...rest } = requestBody;
 
     await companyService.findOne(companyId, currentUser.id);
+    await jobRoleService.findOne(jobRoleId)
+
+    // get active package of the recruiter`
+    const activePackage = await recruiterPackageService.findActivePackage(currentUser.id)
+
+    // count how many job post by recruiter
+    const jobCount = await prisma.job.count({
+      where: {
+        postById: currentUser.id
+      }
+    })
+
+    
 
     const job = await prisma.job.create({
       data: {
         ...rest,
         applicationDeadline: new Date(applicationDeadline),
+        jobRoleId,
         companyId,
         postById: currentUser.id
       }

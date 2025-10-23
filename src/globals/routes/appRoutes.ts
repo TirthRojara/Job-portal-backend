@@ -13,6 +13,8 @@ import jobRoleRoute from '~/features/job-role/job-role.route';
 import jobSkillRoute from '~/features/job-skill/job-skill.route';
 import jobRoute from '~/features/job/job.route';
 import packageRoute from '~/features/package/package.route';
+import razorpayRoute from '~/features/payment/razorpay.route';
+import RecruiterPackageRoute from '~/features/recruiter-package/recruiter-package.route';
 import authRoute from '~/features/user/routes/auth.route';
 import userRouter from '~/features/user/routes/user.route';
 
@@ -33,6 +35,8 @@ function appRoutes(app: Application) {
   app.use('/api/v1/job-benefit', jobBenefitRoute);
   app.use('/api/v1/apply', applyRoute);
   app.use('/api/v1/package', packageRoute);
+  app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
+  app.use('/api/v1/razorpay', razorpayRoute);
 }
 
 export default appRoutes;

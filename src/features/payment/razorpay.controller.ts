@@ -1,0 +1,40 @@
+import { Request, Response } from 'express';
+import HTTP_STATUS from '~/globals/constants/http.constant';
+import { razorpayService } from './razorpay.service';
+import { BadRequestException } from '~/globals/cores/error.cores';
+
+class RazorpayController {
+  public async create(req: Request, res: Response) {
+    const order = await razorpayService.create(parseInt(req.params.packageId), req.currentUser);
+
+    return res.status(HTTP_STATUS.CREATED).json({
+      message: 'Created order successfully',
+      data: order
+    });
+  }
+
+  public async getKeyId(req: Request, res: Response) {
+    const keyId = await razorpayService.getKeyId();
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Retrieved Razorpay key ID successfully',
+      data: keyId
+    });
+  }
+
+  public async verifypayment(req: Request, res: Response) {
+    try {
+      const data = await razorpayService.verifypayment(req);
+
+      return res.status(HTTP_STATUS.OK).json({
+        message: 'Payment successfully',
+        data
+      });
+    } catch (error) {
+      console.error('Error in verifying payment:', error);
+      throw new BadRequestException('Error in verifying payment');
+    }
+  }
+}
+
+export const razorpayController: RazorpayController = new RazorpayController();
