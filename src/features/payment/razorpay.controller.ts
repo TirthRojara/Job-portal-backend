@@ -5,7 +5,11 @@ import { BadRequestException } from '~/globals/cores/error.cores';
 
 class RazorpayController {
   public async create(req: Request, res: Response) {
-    const order = await razorpayService.create(parseInt(req.params.packageId), req.currentUser);
+    const packageId = parseInt(req.params.packageId);
+
+    
+    const order = await razorpayService.create(packageId);
+    // const order = await razorpayService.create(packageId, req.currentUser);
 
     return res.status(HTTP_STATUS.CREATED).json({
       message: 'Created order successfully',

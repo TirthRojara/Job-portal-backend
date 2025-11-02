@@ -11,8 +11,12 @@ const razorpay = new Razorpay({
 });
 
 class RazorpayService {
-  public async create(packageId: number, currentUser: UserPayLoad) {
-    const pkg = await packageService.readOneForRecruiter(packageId);
+  public async create(packageId: number) {
+  // public async create(packageId: number, currentUser: UserPayLoad) {
+   
+
+    try {
+      const pkg = await packageService.readOneForRecruiter(packageId);
 
     // Step 1: Create initial order in DB without razorpayOrderId
     const dbOrder = await prisma.order.create({
@@ -52,6 +56,13 @@ class RazorpayService {
     });
 
     return { order: updatedOrder };
+    } catch (error) {
+      if (error instanceof CustomError) {
+            throw error;
+        }
+        throw new BadRequestException('Error creating order');
+    
+    }
   }
 
   public async getKeyId() {
@@ -77,7 +88,13 @@ class RazorpayService {
         throw new BadRequestException('Invalid signature');
       }
 
-      const event = JSON.parse(body);
+      // const event = JSON.parse(body);
+      // console.log(event);
+
+      // const bodyString = req.body.toString('utf-8');
+      // const event = JSON.parse(bodyString);
+
+      const event = JSON.parse(req.body.toString('utf-8'));
       console.log(event);
 
       if (event.event === 'payment.captured') {
@@ -113,6 +130,8 @@ class RazorpayService {
       throw new BadRequestException('Error in verifying payment');
     }
   }
+
+  public async checkWebHook(req: any) {}
 }
 
 export const razorpayService: RazorpayService = new RazorpayService();

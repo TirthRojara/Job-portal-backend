@@ -39,13 +39,9 @@ class PackageService {
 
   public async readOneForRecruiter(id: number): Promise<Package> {
 
-
-    // if (typeof id !== 'number' || isNaN(id)) {
-    //   throw new Error('Invalid package id');
-    // }
-
-
     console.log('package service,  packageId : ' + id);
+
+
     const pkg = await prisma.package.findFirst({
       where: { id: id, isActive: true }
     });
