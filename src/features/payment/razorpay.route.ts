@@ -6,10 +6,9 @@ import { razorpayController } from './razorpay.controller';
 
 const razorpayRoute = express.Router();
 
-const rawBodyMiddleware = express.raw({ type: 'application/json' });
 
 razorpayRoute.post(
-  '/:packageId',
+  '/create/:packageId',
   //  verifyUser,
   //   allowAccess('RECRUITER'),
   asyncWrapper(razorpayController.create)
@@ -22,12 +21,31 @@ razorpayRoute.get(
   asyncWrapper(razorpayController.getKeyId)
 );
 
-razorpayRoute.post(
-  '/verifypayment',
-  rawBodyMiddleware,
-  //   verifyUser,
-  // allowAccess('RECRUITER'),
-  asyncWrapper(razorpayController.verifypayment)
-);
 
-export default razorpayRoute;
+// const rawBodyMiddleware = express.raw({ type: 'application/json' });
+// razorpayRoute.post(
+//   '/verifypayment',
+//   // rawBodyMiddleware,
+//   express.raw({ type: 'application/json' }),
+//   asyncWrapper(razorpayController.verifypayment)
+// );
+
+
+// export default razorpayRoute;
+
+
+
+const razorpayWebhookRoute = express.Router();
+
+
+// const rawBodyMiddleware = express.raw({ type: 'application/json' });
+// razorpayWebhookRoute.post(
+//   '/verifypayment',
+//   // rawBodyMiddleware,
+//   express.raw({ type: 'application/json' }),
+//   asyncWrapper(razorpayController.verifypayment)
+// );
+
+
+export default {razorpayWebhookRoute, razorpayRoute};
+

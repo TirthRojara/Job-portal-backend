@@ -1,3 +1,4 @@
+import express from 'express';
 import { Application } from 'express';
 import applyRoute from '~/features/apply/apply.route';
 import candidateEducationRoute from '~/features/candidate-education/candidate-education.route';
@@ -13,7 +14,8 @@ import jobRoleRoute from '~/features/job-role/job-role.route';
 import jobSkillRoute from '~/features/job-skill/job-skill.route';
 import jobRoute from '~/features/job/job.route';
 import packageRoute from '~/features/package/package.route';
-import razorpayRoute from '~/features/payment/razorpay.route';
+// import razorpayRoute from '~/features/payment/razorpay.route';
+import paymentroute from '~/features/payment/razorpay.route';
 import RecruiterPackageRoute from '~/features/recruiter-package/recruiter-package.route';
 import authRoute from '~/features/user/routes/auth.route';
 import userRouter from '~/features/user/routes/user.route';
@@ -36,7 +38,10 @@ function appRoutes(app: Application) {
   app.use('/api/v1/apply', applyRoute);
   app.use('/api/v1/package', packageRoute);
   app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
-  app.use('/api/v1/razorpay', razorpayRoute);
+  app.use('/api/v1/razorpay', paymentroute.razorpayRoute);
+
+
+  // app.use('/api/v1/razorpay/webhook', express.raw({ type: 'application/json' }), paymentroute.razorpayWebhookRoute);
 }
 
 export default appRoutes;

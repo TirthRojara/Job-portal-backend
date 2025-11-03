@@ -7,7 +7,6 @@ class RazorpayController {
   public async create(req: Request, res: Response) {
     const packageId = parseInt(req.params.packageId);
 
-    
     const order = await razorpayService.create(packageId);
     // const order = await razorpayService.create(packageId, req.currentUser);
 
@@ -27,17 +26,12 @@ class RazorpayController {
   }
 
   public async verifypayment(req: Request, res: Response) {
-    try {
-      const data = await razorpayService.verifypayment(req);
+    const data = await razorpayService.verifypayment(req);
 
-      return res.status(HTTP_STATUS.OK).json({
-        message: 'Payment successfully',
-        data
-      });
-    } catch (error) {
-      console.error('Error in verifying payment:', error);
-      throw new BadRequestException('Error in verifying payment');
-    }
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Payment successfully',
+      data
+    });
   }
 }
 

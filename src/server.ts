@@ -5,6 +5,9 @@ import appRoutes from './globals/routes/appRoutes';
 import { CustomError, NotFountException } from './globals/cores/error.cores';
 import HTTP_STATUS from './globals/constants/http.constant';
 import cors from 'cors';
+import asyncWrapper from './globals/cores/asyncWrapper.core';
+import { razorpayController } from './features/payment/razorpay.controller';
+// import bodyParser from 'body-parser';
 
 class Server {
   private app: Application;
@@ -20,6 +23,8 @@ class Server {
     this.listenServer();
   }
 
+  
+
   private setUpMiddleware(): void {
     this.app.use(
       cors({
@@ -30,8 +35,13 @@ class Server {
         credentials: true
       })
     );
+
+    this.app.post('/api/razorpay/verifypayment', express.raw({ type: 'application/json' }), asyncWrapper(razorpayController.verifypayment));
+
+
     this.app.use(express.json()); // req.body  // postman input
     this.app.use(cookieParser());
+    // this.app.use(bodyParser.json())
   }
 
   private setUpRoutes(): void {
