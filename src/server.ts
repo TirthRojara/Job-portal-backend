@@ -1,12 +1,13 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
-import appRoutes from './globals/routes/appRoutes';
+// import {appRoutes} from './globals/routes/appRoutes';
 import { CustomError, NotFountException } from './globals/cores/error.cores';
 import HTTP_STATUS from './globals/constants/http.constant';
 import cors from 'cors';
 import asyncWrapper from './globals/cores/asyncWrapper.core';
 import { razorpayController } from './features/payment/razorpay.controller';
+import Routes from './globals/routes/appRoutes';
 // import bodyParser from 'body-parser';
 
 class Server {
@@ -36,16 +37,15 @@ class Server {
       })
     );
 
-    this.app.post('/api/razorpay/verifypayment', express.raw({ type: 'application/json' }), asyncWrapper(razorpayController.verifypayment));
-
+    // this.app.post('/api/razorpay/verifypayment', express.raw({ type: 'application/json' }), asyncWrapper(razorpayController.verifypayment));
+    Routes.razorpayWebhookRoute(this.app)
 
     this.app.use(express.json()); // req.body  // postman input
     this.app.use(cookieParser());
-    // this.app.use(bodyParser.json())
   }
 
   private setUpRoutes(): void {
-    appRoutes(this.app);
+    Routes.appRoutes(this.app);
   }
 
   private setUpGlobalError(): void {

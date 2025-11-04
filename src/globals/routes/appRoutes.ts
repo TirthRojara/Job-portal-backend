@@ -44,4 +44,8 @@ function appRoutes(app: Application) {
   // app.use('/api/v1/razorpay/webhook', express.raw({ type: 'application/json' }), paymentroute.razorpayWebhookRoute);
 }
 
-export default appRoutes;
+function razorpayWebhookRoute(app: Application) {
+  app.use('/api/v1/razorpay/webhook', paymentroute.razorpayWebhookRoute)
+}
+
+export default {appRoutes, razorpayWebhookRoute};
