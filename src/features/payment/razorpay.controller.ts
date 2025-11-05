@@ -52,7 +52,7 @@ class RazorpayController {
     const subscription = await razorpayService.handleSubscriptionCharged(req);
    
     return res.status(HTTP_STATUS.OK).json({
-      message: 'Verify subscription payment successfully',
+      message: 'Verifying subscription payment',
       data: subscription
     });
   }

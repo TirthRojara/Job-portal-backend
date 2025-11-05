@@ -6,6 +6,6 @@ import { recruiterPackageController } from './recruiter-package.controller';
 
 const RecruiterPackageRoute = express.Router();
 
-RecruiterPackageRoute.post('/:packageId', verifyUser, allowAccess('RECRUITER'), asyncWrapper(recruiterPackageController.create));
+// RecruiterPackageRoute.post('/:packageId', verifyUser, allowAccess('RECRUITER'), asyncWrapper(recruiterPackageController.create));
 
 export default RecruiterPackageRoute;

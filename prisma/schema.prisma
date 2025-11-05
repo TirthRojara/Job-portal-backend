@@ -21,22 +21,20 @@ enum Role {
 }
 
 model User {
-  id                  Int                   @id @default(autoincrement())
-  name                String?
-  email               String                @unique
-  password            String
-  role                Role                  @default(CANDIDATE)
-  status              Boolean               @default(true)
-  candidateProfile    CandidateProfile?
-  Company             Company[]
-  Job                 Job[]
-  // RecruiterPackage RecruiterPackage[]
-  // Order            Order[]
-  RecruiterPackage    RecruiterPackageNew[]
-  Subscription        Subscription[]
-  PaymentHistory      PaymentHistory[]
-  RecruiterPackageold RecruiterPackage[]
-  Order               Order[]
+  id               Int                @id @default(autoincrement())
+  name             String?
+  email            String             @unique
+  password         String
+  role             Role               @default(CANDIDATE)
+  status           Boolean            @default(true)
+  candidateProfile CandidateProfile?
+  Company          Company[]
+  Job              Job[]
+  RecruiterPackage RecruiterPackage[]
+  Subscription     Subscription[]
+  PaymentHistory   PaymentHistory[]
+  // RecruiterPackageold RecruiterPackage[]
+  // Order               Order[]
 }
 
 enum Gender {
@@ -304,62 +302,60 @@ model Apply {
 }
 
 model Package {
-  id                  Int                   @id @default(autoincrement())
-  label               String
-  price               Float
-  jobPostLimit        Int
-  isActive            Boolean               @default(true)
-  // RecruiterPackage RecruiterPackage[]
-  // Order            Order[]
-  RecruiterPackage    RecruiterPackageNew[]
-  Subscription        Subscription[]
-  RecruiterPackageold RecruiterPackage[]
-  Order               Order[]
+  id               Int                @id @default(autoincrement())
+  label            String
+  price            Float
+  jobPostLimit     Int
+  isActive         Boolean            @default(true)
+  RecruiterPackage RecruiterPackage[]
+  Subscription     Subscription[]
+  // RecruiterPackageold RecruiterPackage[]
+  // Order               Order[]
 }
 
 // this model is only for one time payment so it can only use with order.create
-model RecruiterPackage {
-  id        Int      @id @default(autoincrement())
-  startDate DateTime @default(now())
-  endDate   DateTime @db.Date
+// model RecruiterPackage {
+//   id        Int      @id @default(autoincrement())
+//   startDate DateTime @default(now())
+//   endDate   DateTime @db.Date
 
-  recruiter   User @relation(fields: [recruiterId], references: [id])
-  recruiterId Int
+//   recruiter   User @relation(fields: [recruiterId], references: [id])
+//   recruiterId Int
 
-  package   Package @relation(fields: [packageId], references: [id])
-  packageId Int
-}
+//   package   Package @relation(fields: [packageId], references: [id])
+//   packageId Int
+// }
 
-enum OrderStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  CANCELLED
-  EXPIRED
-}
+// enum OrderStatus {
+//   PENDING
+//   SUCCESS
+//   FAILED
+//   CANCELLED
+//   EXPIRED
+// }
 
 // this model is only for one time payment so it can only use with order.create
-model Order {
-  id         Int         @id @default(autoincrement())
-  totalPrice Float       @default(0)
-  status     OrderStatus @default(PENDING)
+// model Order {
+//   id         Int         @id @default(autoincrement())
+//   totalPrice Float       @default(0)
+//   status     OrderStatus @default(PENDING)
 
-  razorpayOrderId   String? @unique
-  razorpayReceiptId String? @unique
-  razorpayPaymentId String? @unique
-  razorpaySignature String?
+//   razorpayOrderId   String? @unique
+//   razorpayReceiptId String? @unique
+//   razorpayPaymentId String? @unique
+//   razorpaySignature String?
 
-  currency  String?  @default("INR")
-  attempts  Int?     @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+//   currency  String?  @default("INR")
+//   attempts  Int?     @default(0)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
 
-  recruiter   User @relation(fields: [recruiterId], references: [id])
-  recruiterId Int
+//   recruiter   User @relation(fields: [recruiterId], references: [id])
+//   recruiterId Int
 
-  package   Package @relation(fields: [packageId], references: [id])
-  packageId Int
-}
+//   package   Package @relation(fields: [packageId], references: [id])
+//   packageId Int
+// }
 
 enum RecruiterPackageStatus {
   ACTIVE
@@ -367,7 +363,7 @@ enum RecruiterPackageStatus {
   CANCELLED
 }
 
-model RecruiterPackageNew {
+model RecruiterPackage {
   id        Int      @id @default(autoincrement())
   startDate DateTime @default(now())
   endDate   DateTime @db.Date
@@ -376,8 +372,8 @@ model RecruiterPackageNew {
   status                 RecruiterPackageStatus
   billingCycleCount      Int?                   @default(0)
 
-  recruiter   User @relation(fields: [recruiterId], references: [id])
-  recruiterId Int
+  User   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
 
   package   Package @relation(fields: [packageId], references: [id])
   packageId Int
@@ -419,7 +415,7 @@ enum PaymentStatus {
 model PaymentHistory {
   id                     Int           @id @default(autoincrement())
   razorpayPaymentId      String?       @unique
-  razorpaySubscriptionId String? // Link to subscription if payment is for subscription
+  razorpaySubscriptionId String?
   amount                 Float
   currency               String        @default("INR")
   status                 PaymentStatus

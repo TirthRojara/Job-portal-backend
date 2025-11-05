@@ -15,7 +15,6 @@ class JobService {
     await jobRoleService.findOne(jobRoleId)
 
     // get active package of the recruiter`
-    const activePackage = await recruiterPackageService.findActivePackage(currentUser.id)
 
     // count how many job post by recruiter
     const jobCount = await prisma.job.count({
