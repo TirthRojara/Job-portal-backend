@@ -26,6 +26,11 @@ razorpayRoute.post(
   asyncWrapper(razorpayController.create)
 );
 
+razorpayRoute.post(
+  '/subscription/pause/:subscriptionId',
+  asyncWrapper(razorpayController.handleSubscriptionPaused)
+);
+
 
 
 
@@ -33,7 +38,7 @@ razorpayRoute.post(
 // export default razorpayRoute;
 
 
-
+//  this is for webhook routes
 const razorpayWebhookRoute = express.Router();
 
 // for one time payment 
@@ -51,6 +56,12 @@ razorpayWebhookRoute.post(
   asyncWrapper(razorpayController.handleSubscriptionCharged)
 );
 
+razorpayWebhookRoute.post(
+  '/subscription/pause',
+  rawBodyMiddleware,
+  asyncWrapper(razorpayController.handleSubscriptionPausedWebhook)
+);
 
+//  https://conchate-moistly-lucy.ngrok-free.dev/api/v1/razorpay/webhook/subscription/pause
 export default {razorpayWebhookRoute, razorpayRoute};
 

@@ -57,6 +57,25 @@ class RazorpayController {
     });
   }
 
+  public async handleSubscriptionPaused(req: Request, res: Response) {
+
+    const subscription = await razorpayService.handleSubscriptionPaused(req, req.params.subscriptionId); 
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Paused subscription request sent successfully',
+    });
+  }
+
+  public async handleSubscriptionPausedWebhook(req: Request, res: Response) {
+
+    const subscription = await razorpayService.handleSubscriptionPausedWebhook(req); 
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Paused subscription successfully',
+      data: subscription
+    });
+  }
+
 }
 
 export const razorpayController: RazorpayController = new RazorpayController();

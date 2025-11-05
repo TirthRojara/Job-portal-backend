@@ -7,7 +7,7 @@ import { BadRequestException, CustomError, NotFountException } from '~/globals/c
 
 import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils';
 import { PaymentStatus, RecruiterPackageStatus, Subscription, SubscriptionStatus } from '@prisma/client';
-
+import subscriptions from 'razorpay/dist/types/subscriptions';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -148,14 +148,11 @@ class RazorpayService {
       }
     });
 
-    // console.log('Razorpay Subscription response: \n', razorpaySubscription);
-    // console.log('Razorpay Subscription created:', razorpaySubscription.id);
-
     // Step 2: Save the subscription info in DB
     const subscriptionInDb = await prisma.subscription.create({
       data: {
         razorpaySubscriptionId: razorpaySubscription.id,
-        razorpayPlanId: 'plan_RbXdzxslWEISVU',      // pro
+        razorpayPlanId: 'plan_RbXdzxslWEISVU', // pro
         // razorpayPlanId: 'plan_RbXdUGA4Fw0vmf',   // basic
         status: SubscriptionStatus.CREATED,
         startAt: new Date(),
@@ -191,7 +188,7 @@ class RazorpayService {
     return subscription;
   }
 
-  private async updateSubscriptionStatus(subscription: Subscription) {
+  private async updateSubscriptionStatusforCharge(subscription: Subscription) {
     return await prisma.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -252,7 +249,7 @@ class RazorpayService {
   private async handleSubscriptionChargedEvent(event: any) {
     const subscriptionId = event.payload.subscription.entity.id;
     const subscription = await this.findSubscription(subscriptionId);
-    await this.updateSubscriptionStatus(subscription);
+    await this.updateSubscriptionStatusforCharge(subscription);
     const paymentHistory = await this.logPaymentHistory(event, subscriptionId);
     await this.addRecruiterPackage(event);
 
@@ -285,95 +282,48 @@ class RazorpayService {
     try {
       console.log('verify subscription payment service');
 
-      const body = req.body;
-      const signature = req.headers['x-razorpay-signature'];
-      console.log('Received body:', body);
-      console.log('Received signature:', signature);
-
-      // const expectedSignature = crypto
-      //   .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_KEY_SECRET!)
-      //   .update(body)
-      //   .digest('hex');
-
-      // if (signature !== expectedSignature) {
-      //   throw new BadRequestException('Invalid signature');
-      // }
-
       const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
       if (event.event === 'subscription.charged') return await this.handleSubscriptionChargedEvent(event);
       if (event.event === 'payment.failed') return await this.handlePaymentFailedEvent(event);
-
-      // if (event.event === 'subscription.charged') {
-      // const subscriptionId = event.payload.subscription.entity.id;
-      // const paymentId = event.payload.payment.entity.id;
-      // const amount = event.payload.payment.entity.amount;
-      // const currency = event.payload.payment.entity.currency || 'INR';
-      // const paidAt = new Date(event.payload.payment.entity.created_at * 1000); // convert unix time to JS Date
-
-      // console.log('event subscriptionId: ' + subscriptionId);
-
-      // Step 1: Find subscription record in your DB by subscriptionId
-      // const subscription = await prisma.subscription.findUnique({
-      //   where: { razorpaySubscriptionId: subscriptionId }
-      // });
-
-      // if (!subscription) {
-      //   throw new NotFountException('Subscription not found');
-      // }
-
-      // Step 2: Increment paidCount and update status to active
-      // const updatedSubscription = await prisma.subscription.update({
-      //   where: { razorpaySubscriptionId: subscription.razorpaySubscriptionId },
-      //   data: {
-      //     paidCount: (subscription.paidCount || 0) + 1,
-      //     status: SubscriptionStatus.ACTIVE,
-      //     updatedAt: new Date()
-      //   }
-      // });
-
-      // Step 3: Log payment details in PaymentHistory
-      // await prisma.paymentHistory.create({
-      //   data: {
-      //     razorpayPaymentId: paymentId,
-      //     razorpaySubscriptionId: subscriptionId,
-      //     amount: amount / 100, // convert paise to actual currency value
-      //     currency,
-      //     status: PaymentStatus.SUCCESSFUL,
-      //     paymentMethod: event.payload.payment.entity.method,
-      //     createdAt: paidAt,
-      //     userId: 4
-      //   }
-      // });
-
-      // console.log('Updated subscription after payment');
-      // console.log('subscription is ACTIVE');
-
-      // return updatedSubscription;
-      // }
-      // else if (event.event === 'payment.failed') {
-      //   const paymentId = event.payload.payment.entity.id;
-      //   const amount = event.payload.payment.entity.amount;
-      //   const currency = event.payload.payment.entity.currency || 'INR';
-      //   const paidAt = new Date(event.payload.payment.entity.created_at * 1000); // convert unix time to JS Date
-
-      //   // Log payment details in PaymentHistory
-      //   const paymentHistory = await prisma.paymentHistory.create({
-      //     data: {
-      //       razorpayPaymentId: paymentId,
-      //       // razorpaySubscriptionId: subscriptionId,
-      //       amount: amount / 100, // convert paise to actual currency value
-      //       currency,
-      //       status: PaymentStatus.FAILED,
-      //       paymentMethod: event.payload.payment.entity.method,
-      //       createdAt: paidAt,
-      //       userId: 4
-      //     }
-      //   });
-
-      //   return paymentHistory;
-      // }
     } catch (error) {
       throw new BadRequestException('Error in verifying payment: ' + error);
+    }
+  }
+
+  public async handleSubscriptionPaused(req: any, subscriptionId: string) {
+    try {
+      razorpay.subscriptions.pause(subscriptionId, { pause_at: 'now' });
+      console.log('Paused request send for subscription : ' + subscriptionId);
+    } catch (error) {
+      throw new BadRequestException('Error while Pausing the subscription : ' + error);
+    }
+  }
+
+  private async updateSubscripitonStatus(status: SubscriptionStatus, subscriptionId: string) {
+    return await prisma.subscription.update({
+      where: {razorpaySubscriptionId: subscriptionId},
+      data: {
+        status
+      }
+    })
+  }
+
+  public async handleSubscriptionPausedWebhook(req: any) {
+    try {
+      const signature = req.headers['x-razorpay-signature'];
+      const body = req.body;
+
+      const event = this.verifySignature(body, signature);
+
+      if (event.event === 'subscription.paused') {
+        const subscription = event.payload.subscription.entity;
+       
+        this.updateSubscripitonStatus(SubscriptionStatus.PAUSED, subscription.id)
+
+        console.log(`Subscription paused: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error while Pausing the subscription in payment gateway : ' + error);
     }
   }
 }
