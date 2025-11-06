@@ -4,16 +4,6 @@ import { razorpayService } from './razorpay.service';
 import { BadRequestException } from '~/globals/cores/error.cores';
 
 class RazorpayController {
-  
-  public async getKeyId(req: Request, res: Response) {
-    const keyId = await razorpayService.getKeyId();
-
-    return res.status(HTTP_STATUS.OK).json({
-      message: 'Retrieved Razorpay key ID successfully',
-      data: keyId
-    });
-  }
-
   // public async create(req: Request, res: Response) {
   //   const packageId = parseInt(req.params.packageId);
 
@@ -35,40 +25,61 @@ class RazorpayController {
   //   });
   // }
 
+  public async getKeyId(req: Request, res: Response) {
+    const keyId = await razorpayService.getKeyId();
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Retrieved Razorpay key ID successfully',
+      data: keyId
+    });
+  }
+
+  //  # handle create subscription
 
   public async create(req: Request, res: Response) {
     const packageId = parseInt(req.params.packageId);
 
-    const subscription = await razorpayService.create(packageId);
-   
+    const subscription = await razorpayService.create(packageId, req.recruiterPackage! );
+
     return res.status(HTTP_STATUS.CREATED).json({
       message: 'Created subscription successfully',
       data: subscription
     });
   }
 
-   public async handleSubscriptionCharged(req: Request, res: Response) {
+  //  # handle subscription completed event
 
+  public async handleSubscriptionActivatedWebhook(req: Request, res: Response) {
+    await razorpayService.handleSubscriptionActivatedWebhook(req);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Activated subscription successfully'
+    });
+  }
+
+  //  # handle subscription charged event
+
+  public async handleSubscriptionCharged(req: Request, res: Response) {
     const subscription = await razorpayService.handleSubscriptionCharged(req);
-   
+
     return res.status(HTTP_STATUS.OK).json({
       message: 'Verifying subscription payment',
       data: subscription
     });
   }
 
-  public async handleSubscriptionPaused(req: Request, res: Response) {
+  //  # handle subscription paused event
 
-    const subscription = await razorpayService.handleSubscriptionPaused(req, req.params.subscriptionId); 
+  public async handleSubscriptionPaused(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionPaused(req, req.params.subscriptionId);
 
     return res.status(HTTP_STATUS.OK).json({
-      message: 'Paused subscription request sent successfully',
+      message: 'Paused subscription request sent successfully'
     });
   }
 
   public async handleSubscriptionPausedWebhook(req: Request, res: Response) {
-
-    const subscription = await razorpayService.handleSubscriptionPausedWebhook(req); 
+    const subscription = await razorpayService.handleSubscriptionPausedWebhook(req);
 
     return res.status(HTTP_STATUS.OK).json({
       message: 'Paused subscription successfully',
@@ -76,6 +87,65 @@ class RazorpayController {
     });
   }
 
+  //  # handle subscription resumed event
+
+  public async handleSubscriptionResumed(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionResumed(req, req.params.subscriptionId);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Resume subscription request sent successfully'
+    });
+  }
+
+  public async handleSubscriptionResumedWebhook(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionResumedWebhook(req);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Resumed subscription successfully',
+      data: subscription
+    });
+  }
+
+  //  # handle subscription halted event
+
+  public async handleSubscriptionHaltedWebhook(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionHaltedWebhook(req);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Subscription halted',
+      data: subscription
+    });
+  }
+
+  //  # handle subscription resumed event
+
+  public async handleSubscriptionCancelled(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionCancelled(req, req.params.subscriptionId);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Cancelled subscription request sent successfully'
+    });
+  }
+
+  public async handleSubscriptionCancelledWebhook(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionCancelledWebhook(req);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Cancelled subscription successfully',
+      data: subscription
+    });
+  }
+
+  //  # handle subscription completed event
+
+  public async handleSubscriptionCompletedWebhook(req: Request, res: Response) {
+    const subscription = await razorpayService.handleSubscriptionCompletedWebhook(req);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Completed subscription successfully',
+      data: subscription
+    });
+  }
 }
 
 export const razorpayController: RazorpayController = new RazorpayController();

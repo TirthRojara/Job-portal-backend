@@ -15,12 +15,6 @@ const razorpay = new Razorpay({
 });
 
 class RazorpayService {
-  public async getKeyId() {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    if (!keyId) throw new Error('Razorpay Key ID is not set in environment variables');
-    return { keyId };
-  }
-
   // public async create(packageId: number) {
   //   // public async create(packageId: number, currentUser: UserPayLoad) {
 
@@ -137,12 +131,20 @@ class RazorpayService {
   //   }
   // }
 
-  public async create(packageId: number) {
+  public async getKeyId() {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    if (!keyId) throw new Error('Razorpay Key ID is not set in environment variables');
+    return { keyId };
+  }
+
+  //  # create subscription
+
+  public async create(packageId: number, recruiterPackage: RecruiterPackagePayload) {
     // Step 1: Create Subscription in Razorpay
     const razorpaySubscription = await razorpay.subscriptions.create({
       plan_id: 'plan_RbXdzxslWEISVU',
       customer_notify: true,
-      total_count: 12, // For example, for 12 months
+      total_count: 2, // For example, for 12 months
       notes: {
         packageId: packageId.toString()
       }
@@ -168,6 +170,26 @@ class RazorpayService {
     return subscriptionInDb;
   }
 
+  //  # handle subcription actived event
+
+  public async handleSubscriptionActivatedWebhook(req: any) {
+    try {
+      const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
+
+      if (event.event === 'subscription.activated') {
+        const subscription = event.payload.subscription.entity;
+
+        this.updateSubscripitonStatus(SubscriptionStatus.ACTIVE, subscription.id);
+
+        console.log(`Subscription activated successfully: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error while activating the subscription in payment gateway : ' + error);
+    }
+  }
+
+  //  # handle subscription charged webhook
+
   private verifySignature(body: string, signature: string): any {
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_KEY_SECRET!)
@@ -188,12 +210,11 @@ class RazorpayService {
     return subscription;
   }
 
-  private async updateSubscriptionStatusforCharge(subscription: Subscription) {
+  private async updateSubscriptionforCharge(subscription: Subscription) {
     return await prisma.subscription.update({
       where: { id: subscription.id },
       data: {
         paidCount: (subscription.paidCount || 0) + 1,
-        status: SubscriptionStatus.ACTIVE,
         updatedAt: new Date()
       }
     });
@@ -249,7 +270,7 @@ class RazorpayService {
   private async handleSubscriptionChargedEvent(event: any) {
     const subscriptionId = event.payload.subscription.entity.id;
     const subscription = await this.findSubscription(subscriptionId);
-    await this.updateSubscriptionStatusforCharge(subscription);
+    await this.updateSubscriptionforCharge(subscription);
     const paymentHistory = await this.logPaymentHistory(event, subscriptionId);
     await this.addRecruiterPackage(event);
 
@@ -290,6 +311,8 @@ class RazorpayService {
     }
   }
 
+  //  # handle subscription paused event
+
   public async handleSubscriptionPaused(req: any, subscriptionId: string) {
     try {
       razorpay.subscriptions.pause(subscriptionId, { pause_at: 'now' });
@@ -301,11 +324,11 @@ class RazorpayService {
 
   private async updateSubscripitonStatus(status: SubscriptionStatus, subscriptionId: string) {
     return await prisma.subscription.update({
-      where: {razorpaySubscriptionId: subscriptionId},
+      where: { razorpaySubscriptionId: subscriptionId },
       data: {
         status
       }
-    })
+    });
   }
 
   public async handleSubscriptionPausedWebhook(req: any) {
@@ -317,13 +340,106 @@ class RazorpayService {
 
       if (event.event === 'subscription.paused') {
         const subscription = event.payload.subscription.entity;
-       
-        this.updateSubscripitonStatus(SubscriptionStatus.PAUSED, subscription.id)
+
+        this.updateSubscripitonStatus(SubscriptionStatus.PAUSED, subscription.id);
 
         console.log(`Subscription paused: ${subscription.id}`);
       }
     } catch (error) {
       throw new BadRequestException('Error while Pausing the subscription in payment gateway : ' + error);
+    }
+  }
+
+  //  # handle subscription resumed event
+
+  public async handleSubscriptionResumed(req: any, subscriptionId: string) {
+    try {
+      razorpay.subscriptions.resume(subscriptionId, { resume_at: 'now' });
+      console.log('Resumed request send for subscription : ' + subscriptionId);
+    } catch (error) {
+      throw new BadRequestException('Error while Resuming the subscription : ' + error);
+    }
+  }
+
+  public async handleSubscriptionResumedWebhook(req: any) {
+    try {
+      const signature = req.headers['x-razorpay-signature'];
+      const body = req.body;
+
+      const event = this.verifySignature(body, signature);
+
+      if (event.event === 'subscription.resumed') {
+        const subscription = event.payload.subscription.entity;
+
+        this.updateSubscripitonStatus(SubscriptionStatus.ACTIVE, subscription.id);
+
+        console.log(`Subscription resumed successfully: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error while Resuming the subscription in payment gateway : ' + error);
+    }
+  }
+
+  //  # handle subscription halted event
+
+  public async handleSubscriptionHaltedWebhook(req: any) {
+    try {
+      const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
+
+      if (event.event === 'subscription.halted') {
+        const subscription = event.payload.subscription.entity;
+
+        this.updateSubscripitonStatus(SubscriptionStatus.HALTED, subscription.id);
+
+        console.log(`Subscription is Halted: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error in halt the subscription in payment gateway : ' + error);
+    }
+  }
+
+  //  # handle subscripition Cancel event
+
+  public async handleSubscriptionCancelled(req: any, subscriptionId: string) {
+    try {
+      razorpay.subscriptions.cancel(subscriptionId, false);
+      console.log('Cancel request send for subscription : ' + subscriptionId);
+    } catch (error) {
+      throw new BadRequestException('Error while cancelling the subscription : ' + error);
+    }
+  }
+
+  public async handleSubscriptionCancelledWebhook(req: any) {
+    try {
+      const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
+
+      if (event.event === 'subscription.cancelled') {
+        const subscription = event.payload.subscription.entity;
+
+        this.updateSubscripitonStatus(SubscriptionStatus.CANCELLED, subscription.id);
+
+        console.log(`Subscription cancelled successfully: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error while Resuming the subscription in payment gateway : ' + error);
+    }
+  }
+
+  //  # handle subcription complete event
+
+  public async handleSubscriptionCompletedWebhook(req: any) {
+    try {
+      const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
+
+      if (event.event === 'subscription.completed') {
+        const subscription = event.payload.subscription.entity;
+
+        this.updateSubscripitonStatus(SubscriptionStatus.COMPLETED, subscription.id);
+
+        console.log(`Subscription completed successfully: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error in completing the subscription in payment gateway : ' + error);
     }
   }
 }

@@ -8,6 +8,7 @@ import cors from 'cors';
 import asyncWrapper from './globals/cores/asyncWrapper.core';
 import { razorpayController } from './features/payment/razorpay.controller';
 import Routes from './globals/routes/appRoutes';
+import { SubscriptionMiddleware } from './globals/middlewares/checkSubscription.middleware';
 // import bodyParser from 'body-parser';
 
 class Server {
@@ -37,11 +38,12 @@ class Server {
       })
     );
 
-    // this.app.post('/api/razorpay/verifypayment', express.raw({ type: 'application/json' }), asyncWrapper(razorpayController.verifypayment));
     Routes.razorpayWebhookRoute(this.app)
 
     this.app.use(express.json()); // req.body  // postman input
     this.app.use(cookieParser());
+
+    // this.app.use(SubscriptionMiddleware)
   }
 
   private setUpRoutes(): void {

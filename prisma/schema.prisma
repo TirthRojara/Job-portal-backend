@@ -303,6 +303,7 @@ model Apply {
 
 model Package {
   id               Int                @id @default(autoincrement())
+  planId           String
   label            String
   price            Float
   jobPostLimit     Int
@@ -364,9 +365,9 @@ enum RecruiterPackageStatus {
 }
 
 model RecruiterPackage {
-  id        Int      @id @default(autoincrement())
-  startDate DateTime @default(now())
-  endDate   DateTime @db.Date
+  id        Int       @id @default(autoincrement())
+  startDate DateTime  @default(now())
+  endDate   DateTime? @db.Date
 
   razorpaySubscriptionId String?                @unique
   status                 RecruiterPackageStatus
@@ -384,6 +385,8 @@ enum SubscriptionStatus {
   ACTIVE
   PAUSED
   CANCELLED
+  COMPLETED
+  HALTED
 }
 
 model Subscription {
