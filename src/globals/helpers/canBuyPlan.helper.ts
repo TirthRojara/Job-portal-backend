@@ -1,3 +1,4 @@
+import { packageService } from '~/features/package/package.service';
 import { BadRequestException } from '../cores/error.cores';
 
 function getMonthlyEndDateforProPlan(todayDate: Date): Date {
@@ -22,7 +23,6 @@ function convertRemainingDaysBasicToPro(
   proPlanPrice: number,
   referenceDate: Date
 ) {
-
   // Calculate total days in the plan period
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -37,7 +37,7 @@ function convertRemainingDaysBasicToPro(
   const remainingValue = remainingDays * basicPricePerDay;
 
   // Get pro plan end date from reference date
-  const proPlanEndDate = getMonthlyEndDateforProPlan(referenceDate)
+  const proPlanEndDate = getMonthlyEndDateforProPlan(referenceDate);
 
   // Calculate total days in pro plan
   const totalDaysOfPro = Math.ceil((proPlanEndDate.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -53,10 +53,18 @@ function convertRemainingDaysBasicToPro(
 
 // 1 = basic plan id
 // 2 = pro plan id
+// 4 = free plan id
 
-export function canBuyPlan(upgradePlan: number, recruiterPackage: RecruiterPackagePayload) {
+export async function canBuyPlan(upgradePlan: number, recruiterPackage: RecruiterPackagePayload) {
   const userCurrentPlan = recruiterPackage.packageId;
   const todayDate = new Date();
+
+
+  console.log('canBuyPlan - recruiterPackage:', recruiterPackage);
+  console.log('canBuyPlan - userCurrentPlan:', userCurrentPlan);
+  console.log('canBuyPlan - upgradePlan:', upgradePlan);
+
+  const pkg = await packageService.readOneForRecruiter(upgradePlan);
 
   if (userCurrentPlan === upgradePlan) {
     return new BadRequestException('You are already subscribed to this plan');
@@ -66,6 +74,46 @@ export function canBuyPlan(upgradePlan: number, recruiterPackage: RecruiterPacka
     return new BadRequestException('User with PRO plan cannot buy BASIC or PRO plans again.');
   }
 
-  if (userCurrentPlan === 1 && upgradePlan === 2) {
+  if (userCurrentPlan === 4) {
+    let option = {
+      plan_id: pkg.planId,
+      customer_notify: true,
+      total_count: 12, // For example, for 12 months
+      notes: {
+        packageId: upgradePlan,
+        userId: recruiterPackage.userId
+      }
+    };
+
+    return option;
   }
+
+  if (userCurrentPlan === 1 && upgradePlan === 2) {
+    const extraDays = convertRemainingDaysBasicToPro(
+      recruiterPackage.startDate,
+      recruiterPackage.endDate!,
+      10,
+      20,
+      todayDate
+    );
+
+    const startDatePlusExtraDays = new Date(todayDate.getTime() + extraDays * 24 * 60 * 60 * 1000);
+    const startAtTimestamp = Math.floor(startDatePlusExtraDays.getTime() / 1000);
+    const start_at_for_pro_plan = startAtTimestamp;
+
+    let option = {
+      plan_id: 'plan_RbXdzxslWEISVU',
+      customer_notify: true,
+      total_count: 12, // For example, for 12 months
+      start_at: start_at_for_pro_plan,
+      notes: {
+        packageId: upgradePlan,
+        userId: recruiterPackage.userId
+      }
+    };
+
+    return option;
+  }
+
+  return new BadRequestException('Invalid plan upgrade request');
 }

@@ -8,6 +8,7 @@ import { BadRequestException, CustomError, NotFountException } from '~/globals/c
 import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils';
 import { PaymentStatus, RecruiterPackageStatus, Subscription, SubscriptionStatus } from '@prisma/client';
 import subscriptions from 'razorpay/dist/types/subscriptions';
+import { canBuyPlan } from '~/globals/helpers/canBuyPlan.helper';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -140,22 +141,22 @@ class RazorpayService {
   //  # create subscription
 
   public async create(packageId: number, recruiterPackage: RecruiterPackagePayload) {
-    // Step 1: Create Subscription in Razorpay
-    const razorpaySubscription = await razorpay.subscriptions.create({
-      plan_id: 'plan_RbXdzxslWEISVU',
-      customer_notify: true,
-      total_count: 2, // For example, for 12 months
-      notes: {
-        packageId: packageId.toString()
-      }
-    });
+    console.log('razorpay service packageId', packageId);
+    console.log('razorpay service recruiterPackage', recruiterPackage);
+
+    // check if can buy plan
+    const option = await canBuyPlan(packageId, recruiterPackage);
+
+    if (!('plan_id' in option)) throw new Error(String(option));
+
+    // // Step 1: Create Subscription in Razorpay
+    const razorpaySubscription = await razorpay.subscriptions.create(option);
 
     // Step 2: Save the subscription info in DB
     const subscriptionInDb = await prisma.subscription.create({
       data: {
         razorpaySubscriptionId: razorpaySubscription.id,
-        razorpayPlanId: 'plan_RbXdzxslWEISVU', // pro
-        // razorpayPlanId: 'plan_RbXdUGA4Fw0vmf',   // basic
+        razorpayPlanId: option.plan_id,
         status: SubscriptionStatus.CREATED,
         startAt: new Date(),
         totalCount: 12,
@@ -170,7 +171,36 @@ class RazorpayService {
     return subscriptionInDb;
   }
 
-  //  # handle subcription actived event
+  //  # handle subcription authenticated event
+
+  public async handleSubscriptionAuthenticatedWebhook(req: any) {
+    try {
+      console.log('body ', req.body);
+
+      const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
+
+      if (event.event === 'subscription.authenticated') {
+        const subscription = event.payload.subscription.entity;
+
+        await prisma.recruiterPackage.update({
+          where: { userId: Number(subscription.notes.userId) },
+          data: {
+            status: RecruiterPackageStatus.ACTIVE,
+            startDate: new Date(subscription.start_at * 1000),
+            endDate: new Date(subscription.end_at * 1000),
+            razorpaySubscriptionId: subscription.id,
+            packageId: Number(subscription.notes.packageId)
+          }
+        });
+
+        console.log(`Subscription authenticated successfully: ${subscription.id}`);
+      }
+    } catch (error) {
+      throw new BadRequestException('Error in authenticating the subscription in payment gateway : ' + error);
+    }
+  }
+
+  //  # handle subcription activated event
 
   public async handleSubscriptionActivatedWebhook(req: any) {
     try {
@@ -202,6 +232,7 @@ class RazorpayService {
   }
 
   private async findSubscription(subscriptionId: string) {
+
     const subscription = await prisma.subscription.findUnique({
       where: { razorpaySubscriptionId: subscriptionId }
     });
@@ -222,6 +253,7 @@ class RazorpayService {
 
   private async logPaymentHistory(event: any, subscriptionId: string) {
     const payment = event.payload.payment.entity;
+
     return await prisma.paymentHistory.create({
       data: {
         razorpayPaymentId: payment.id,
@@ -237,11 +269,13 @@ class RazorpayService {
   }
 
   private async addRecruiterPackage(event: any) {
-    const recruiterPackage = await prisma.recruiterPackage.findFirst({
-      where: { userId: 4 }
-    });
 
     const subscription = event.payload.subscription.entity;
+
+    const recruiterPackage = await prisma.recruiterPackage.findUnique({
+      where: { userId: Number(subscription.notes.userId) }
+    });
+
 
     if (recruiterPackage) {
       return await prisma.recruiterPackage.update({
@@ -250,25 +284,17 @@ class RazorpayService {
           startDate: new Date(subscription.start_at * 1000),
           endDate: new Date(subscription.end_at * 1000),
           razorpaySubscriptionId: subscription.id,
-          status: RecruiterPackageStatus.ACTIVE
-        }
-      });
-    } else if (recruiterPackage == null || !recruiterPackage) {
-      return await prisma.recruiterPackage.create({
-        data: {
-          startDate: new Date(subscription.start_at * 1000),
-          endDate: new Date(subscription.end_at * 1000),
-          razorpaySubscriptionId: subscription.id,
           status: RecruiterPackageStatus.ACTIVE,
-          userId: 4,
           packageId: Number(subscription.notes.packageId)
         }
       });
-    }
+    } 
+    
   }
 
   private async handleSubscriptionChargedEvent(event: any) {
     const subscriptionId = event.payload.subscription.entity.id;
+
     const subscription = await this.findSubscription(subscriptionId);
     await this.updateSubscriptionforCharge(subscription);
     const paymentHistory = await this.logPaymentHistory(event, subscriptionId);
@@ -306,6 +332,8 @@ class RazorpayService {
       const event = this.verifySignature(req.body, req.headers['x-razorpay-signature']);
       if (event.event === 'subscription.charged') return await this.handleSubscriptionChargedEvent(event);
       if (event.event === 'payment.failed') return await this.handlePaymentFailedEvent(event);
+
+      console.log(`verify payment successfully`)
     } catch (error) {
       throw new BadRequestException('Error in verifying payment: ' + error);
     }

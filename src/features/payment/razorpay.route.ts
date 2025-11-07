@@ -3,6 +3,7 @@ import asyncWrapper from '~/globals/cores/asyncWrapper.core';
 import { allowAccess } from '~/globals/middlewares/allowAccess.middleware';
 import { verifyUser } from '~/globals/middlewares/verifyUser.middleware';
 import { razorpayController } from './razorpay.controller';
+import { SubscriptionMiddleware } from '~/globals/middlewares/checkSubscription.middleware';
 
 const razorpayRoute = express.Router();
 
@@ -22,7 +23,12 @@ razorpayRoute.get(
 );
 
 // Create the subscription
-razorpayRoute.post('/subscription/create/:packageId', asyncWrapper(razorpayController.create));
+razorpayRoute.post(
+  '/subscription/create/:packageId',
+  verifyUser,
+  asyncWrapper(SubscriptionMiddleware),
+  asyncWrapper(razorpayController.create)
+);
 
 // Pause the subscription request
 razorpayRoute.post('/subscription/pause/:subscriptionId', asyncWrapper(razorpayController.handleSubscriptionPaused));
@@ -31,10 +37,10 @@ razorpayRoute.post('/subscription/pause/:subscriptionId', asyncWrapper(razorpayC
 razorpayRoute.post('/subscription/resume/:subscriptionId', asyncWrapper(razorpayController.handleSubscriptionResumed));
 
 //  Cancel the subscription request
-razorpayRoute.post('/subscription/cancel/:subscriptionId', asyncWrapper(razorpayController.handleSubscriptionCancelled));
-
-
-
+razorpayRoute.post(
+  '/subscription/cancel/:subscriptionId',
+  asyncWrapper(razorpayController.handleSubscriptionCancelled)
+);
 
 //  ###   this is for webhook routes    ###
 
@@ -55,6 +61,13 @@ razorpayWebhookRoute.post(
   '/subscription/activate',
   rawBodyMiddleware,
   asyncWrapper(razorpayController.handleSubscriptionActivatedWebhook)
+);
+
+// handle authenticated event
+razorpayWebhookRoute.post(
+  '/subscription/authenticated',
+  rawBodyMiddleware,
+  asyncWrapper(razorpayController.handleSubscriptionAuthenticatedWebhook)
 );
 
 // verify payment when charge event trigger
@@ -99,6 +112,5 @@ razorpayWebhookRoute.post(
   asyncWrapper(razorpayController.handleSubscriptionCompletedWebhook)
 );
 
-
-//  https://conchate-moistly-lucy.ngrok-free.dev/api/v1/razorpay/webhook/subscription/activate
+//  https://conchate-moistly-lucy.ngrok-free.dev/api/v1/razorpay/webhook/subscription/authenticated
 export default { razorpayWebhookRoute, razorpayRoute };

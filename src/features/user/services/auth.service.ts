@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import { BadRequestException, NotFountException } from '~/globals/cores/error.cores';
 import { generateToken } from '~/globals/helpers/jwt.helper';
-import { User } from '@prisma/client';
+import { RecruiterPackageStatus, User } from '@prisma/client';
 
 class AuthService {
   public async signUp(requestBody: any) {
@@ -26,6 +26,16 @@ class AuthService {
         role: role ? role : 'CANDIDATE'
       }
     });
+
+    if ( role === 'RECRUITER' ) {
+      await prisma.recruiterPackage.create({
+        data: {
+          status: RecruiterPackageStatus.ACTIVE,
+          userId: user.id,
+          packageId: 4 // free package
+        }
+      })
+    }
 
     //create JWT
     const accessToken = generateToken(user);

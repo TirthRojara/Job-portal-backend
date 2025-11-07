@@ -29,7 +29,7 @@ interface RecruiterPackagePayload {
 declare namespace Express {
   export interface Request {
     currentUser: UserPayLoad;
-    recruiterPackage?: RecruiterPackagePayload;
+    recruiterPackage: RecruiterPackagePayload;
   }
   export interface Response {
     currentUser: UserPayLoad;

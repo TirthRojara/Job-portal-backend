@@ -38,8 +38,10 @@ class RazorpayController {
 
   public async create(req: Request, res: Response) {
     const packageId = parseInt(req.params.packageId);
+    console.log('razorpay controller packageId', packageId);
+    console.log('razorpay controller req.recruiterPackage', req.recruiterPackage);
 
-    const subscription = await razorpayService.create(packageId, req.recruiterPackage! );
+    const subscription = await razorpayService.create(packageId, req.recruiterPackage);
 
     return res.status(HTTP_STATUS.CREATED).json({
       message: 'Created subscription successfully',
@@ -47,7 +49,17 @@ class RazorpayController {
     });
   }
 
-  //  # handle subscription completed event
+  //  # handle subscription Authenticated event
+
+  public async handleSubscriptionAuthenticatedWebhook(req: Request, res: Response) {
+    await razorpayService.handleSubscriptionAuthenticatedWebhook(req);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'Authenticated subscription successfully'
+    });
+  }
+
+  //  # handle subscription activated event
 
   public async handleSubscriptionActivatedWebhook(req: Request, res: Response) {
     await razorpayService.handleSubscriptionActivatedWebhook(req);
@@ -60,6 +72,7 @@ class RazorpayController {
   //  # handle subscription charged event
 
   public async handleSubscriptionCharged(req: Request, res: Response) {
+
     const subscription = await razorpayService.handleSubscriptionCharged(req);
 
     return res.status(HTTP_STATUS.OK).json({
