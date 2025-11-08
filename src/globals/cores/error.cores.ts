@@ -10,6 +10,16 @@ export abstract class CustomError extends Error {
     }
 } 
 
+export class CustomErrorException extends CustomError {
+    status: string = 'error';
+    statusCode: number;
+
+    constructor(message: string, statusCode: number) {
+        super(message)
+        this.statusCode = statusCode;
+    }
+}
+
 export class BadRequestException extends CustomError {
     status: string = 'error';
     statusCode: number = HTTP_STATUS.BAD_REQUEST;

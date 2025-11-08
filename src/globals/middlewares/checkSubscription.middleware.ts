@@ -22,12 +22,17 @@ export async function SubscriptionMiddleware(req: Request, res: Response, next: 
       return;
     }
 
+    const currentDate = new Date();
+    const oneMonthLater = new Date(currentDate);
+    oneMonthLater.setMonth(currentDate.getMonth() + 1);
+    const endDate = oneMonthLater;
+
     if (activePackage.endDate && activePackage.endDate < now) {
       activePackage = await prisma.recruiterPackage.update({
         where: { userId: req.currentUser.id },
         data: {
           packageId: 4,
-          endDate: null,
+          endDate,
           startDate: now,
           status: RecruiterPackageStatus.ACTIVE,
           razorpaySubscriptionId: null
@@ -67,4 +72,3 @@ export async function SubscriptionMiddleware(req: Request, res: Response, next: 
     next(new BadRequestException('Subscription verification failed'));
   }
 }
-

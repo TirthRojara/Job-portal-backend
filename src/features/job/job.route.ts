@@ -5,6 +5,7 @@ import { jobCreateSchema, jobUpdateSchema, jobUpdateStatusSchema } from './job.s
 import { allowAccess } from '~/globals/middlewares/allowAccess.middleware';
 import asyncWrapper from '~/globals/cores/asyncWrapper.core';
 import { jobController } from './job.controller';
+import { SubscriptionMiddleware } from '~/globals/middlewares/checkSubscription.middleware';
 
 const jobRoute = express.Router();
 
@@ -12,6 +13,7 @@ jobRoute.post(
   '/:companyId',
   verifyUser,
   allowAccess('RECRUITER'),
+  SubscriptionMiddleware,
   validateSchema(jobCreateSchema),
   asyncWrapper(jobController.create)
 );

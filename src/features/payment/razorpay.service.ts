@@ -182,12 +182,16 @@ class RazorpayService {
       if (event.event === 'subscription.authenticated') {
         const subscription = event.payload.subscription.entity;
 
+        const endDate = new Date(subscription.charge_at * 1000);
+        endDate.setDate(endDate.getDate() + 1); // Add one day
+
         await prisma.recruiterPackage.update({
           where: { userId: Number(subscription.notes.userId) },
           data: {
             status: RecruiterPackageStatus.ACTIVE,
             startDate: new Date(subscription.start_at * 1000),
-            endDate: new Date(subscription.end_at * 1000),
+            // endDate: new Date(subscription.end_at * 1000),
+            endDate,
             razorpaySubscriptionId: subscription.id,
             packageId: Number(subscription.notes.packageId)
           }
@@ -232,7 +236,6 @@ class RazorpayService {
   }
 
   private async findSubscription(subscriptionId: string) {
-
     const subscription = await prisma.subscription.findUnique({
       where: { razorpaySubscriptionId: subscriptionId }
     });
@@ -263,33 +266,34 @@ class RazorpayService {
         status: PaymentStatus.SUCCESSFUL,
         paymentMethod: payment.method,
         createdAt: new Date(payment.created_at * 1000),
-        userId: 4
+        userId: Number(event.payload.subscription.entity.notes.userId)
       }
     });
   }
 
   private async addRecruiterPackage(event: any) {
-
     const subscription = event.payload.subscription.entity;
 
     const recruiterPackage = await prisma.recruiterPackage.findUnique({
       where: { userId: Number(subscription.notes.userId) }
     });
 
+    const endDate = new Date(subscription.charge_at * 1000);// Convert seconds to milliseconds
+    endDate.setDate(endDate.getDate() + 1); // Add one day
 
     if (recruiterPackage) {
       return await prisma.recruiterPackage.update({
         where: { userId: recruiterPackage.userId },
         data: {
           startDate: new Date(subscription.start_at * 1000),
-          endDate: new Date(subscription.end_at * 1000),
+          // endDate: new Date(subscription.end_at * 1000),
+          endDate,
           razorpaySubscriptionId: subscription.id,
           status: RecruiterPackageStatus.ACTIVE,
           packageId: Number(subscription.notes.packageId)
         }
       });
-    } 
-    
+    }
   }
 
   private async handleSubscriptionChargedEvent(event: any) {
@@ -333,7 +337,7 @@ class RazorpayService {
       if (event.event === 'subscription.charged') return await this.handleSubscriptionChargedEvent(event);
       if (event.event === 'payment.failed') return await this.handlePaymentFailedEvent(event);
 
-      console.log(`verify payment successfully`)
+      console.log(`verify payment successfully`);
     } catch (error) {
       throw new BadRequestException('Error in verifying payment: ' + error);
     }

@@ -60,18 +60,19 @@ export async function canBuyPlan(upgradePlan: number, recruiterPackage: Recruite
   const todayDate = new Date();
 
 
-  console.log('canBuyPlan - recruiterPackage:', recruiterPackage);
-  console.log('canBuyPlan - userCurrentPlan:', userCurrentPlan);
-  console.log('canBuyPlan - upgradePlan:', upgradePlan);
+  // console.log('canBuyPlan - recruiterPackage:', recruiterPackage);
+  // console.log('canBuyPlan - userCurrentPlan:', userCurrentPlan);
+  // console.log('canBuyPlan - upgradePlan:', upgradePlan);
 
   const pkg = await packageService.readOneForRecruiter(upgradePlan);
 
   if (userCurrentPlan === upgradePlan) {
-    return new BadRequestException('You are already subscribed to this plan');
+    // return new BadRequestException('You are already subscribed to this plan');
+    throw new BadRequestException('You are already subscribed to this plan');
   }
 
   if (userCurrentPlan === 2) {
-    return new BadRequestException('User with PRO plan cannot buy BASIC or PRO plans again.');
+    throw new BadRequestException('User with PRO plan cannot buy BASIC or PRO plans again.');
   }
 
   if (userCurrentPlan === 4) {

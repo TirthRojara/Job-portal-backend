@@ -21,20 +21,21 @@ enum Role {
 }
 
 model User {
-  id               Int                @id @default(autoincrement())
-  name             String?
-  email            String             @unique
-  password         String
-  role             Role               @default(CANDIDATE)
-  status           Boolean            @default(true)
-  candidateProfile CandidateProfile?
-  Company          Company[]
-  Job              Job[]
-  RecruiterPackage RecruiterPackage[]
-  Subscription     Subscription[]
-  PaymentHistory   PaymentHistory[]
+  id                     Int                     @id @default(autoincrement())
+  name                   String?
+  email                  String                  @unique
+  password               String
+  role                   Role                    @default(CANDIDATE)
+  status                 Boolean                 @default(true)
+  candidateProfile       CandidateProfile?
+  Company                Company[]
+  Job                    Job[]
+  RecruiterPackage       RecruiterPackage[]
+  Subscription           Subscription[]
+  PaymentHistory         PaymentHistory[]
   // RecruiterPackageold RecruiterPackage[]
   // Order               Order[]
+  checkLimitForRecruiter CheckLimitForRecruiter?
 }
 
 enum Gender {
@@ -312,6 +313,14 @@ model Package {
   Subscription     Subscription[]
   // RecruiterPackageold RecruiterPackage[]
   // Order               Order[]
+}
+
+model CheckLimitForRecruiter {
+  id       Int @id @default(autoincrement())
+  jobCount Int @default(0)
+
+  recruiter   User @relation(fields: [recruiterId], references: [id])
+  recruiterId Int  @unique
 }
 
 // this model is only for one time payment so it can only use with order.create

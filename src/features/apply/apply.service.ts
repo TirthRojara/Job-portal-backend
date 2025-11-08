@@ -7,7 +7,7 @@ import { BadRequestException, NotFountException } from '~/globals/cores/error.co
 import { IApplyStatus } from './apply.interface';
 
 class ApplyService {
-  // add feature - if missing skill then show to both C and R.
+  // add feature - if missing skill then show to both Candidate and Recruiter.
   // candidate apply for a job
   public async create(jobId: number, currentUser: UserPayLoad): Promise<Apply> {
     const candidateProfile = await candidateProfileService.readOne(currentUser.id);

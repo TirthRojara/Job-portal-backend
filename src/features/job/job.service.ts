@@ -3,27 +3,42 @@ import { companyService } from '../company/company.service';
 import { IJob } from './job.interface';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import { Job, JobStatus } from '@prisma/client';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { CustomError, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { jobRoleService } from '../job-role/job-role.service';
 import { recruiterPackageService } from '../recruiter-package/recruiter-package.service';
+import { PassThrough } from 'stream';
 
 class JobService {
-  public async create(requestBody: IJob, currentUser: UserPayLoad, companyId: number) {
-    const { applicationDeadline,jobRoleId, ...rest } = requestBody;
+  public async create(
+    requestBody: IJob,
+    currentUser: UserPayLoad,
+    recruiterPackage: RecruiterPackagePayload,
+    companyId: number
+  ) {
+    const { applicationDeadline, jobRoleId, ...rest } = requestBody;
 
     await companyService.findOne(companyId, currentUser.id);
-    await jobRoleService.findOne(jobRoleId)
+    await jobRoleService.findOne(jobRoleId);
 
     // get active package of the recruiter`
 
     // count how many job post by recruiter
-    const jobCount = await prisma.job.count({
-      where: {
-        postById: currentUser.id
-      }
-    })
+    let checkLimit = await prisma.checkLimitForRecruiter.findUnique({
+      where: { recruiterId: currentUser.id }
+    });
 
-    
+    if (!checkLimit) {
+      checkLimit = await prisma.checkLimitForRecruiter.create({
+        data: {
+          recruiterId: currentUser.id,
+          jobCount: 0
+        }
+      });
+    }
+
+    if (checkLimit.jobCount >= recruiterPackage.package.jobPostLimit) {
+      throw new ForbiddenException(`You have reached your job post limit. Please upgrade your package.`);
+    }
 
     const job = await prisma.job.create({
       data: {
@@ -33,6 +48,11 @@ class JobService {
         companyId,
         postById: currentUser.id
       }
+    });
+
+    await prisma.checkLimitForRecruiter.update({
+      where: { recruiterId: currentUser.id },
+      data: { jobCount: { increment: 1 } },
     });
 
     return job;

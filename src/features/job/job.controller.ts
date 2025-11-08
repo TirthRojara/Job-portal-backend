@@ -4,7 +4,12 @@ import HTTP_STATUS from '~/globals/constants/http.constant';
 
 class Jobcontroller {
   public async create(req: Request, res: Response) {
-    const job = await jobService.create(req.body, req.currentUser, parseInt(req.params.companyId));
+    const job = await jobService.create(
+      req.body,
+      req.currentUser,
+      req.recruiterPackage,
+      parseInt(req.params.companyId)
+    );
 
     return res.status(HTTP_STATUS.CREATED).json({
       message: 'Created job successfully',
