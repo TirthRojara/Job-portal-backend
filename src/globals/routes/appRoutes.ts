@@ -37,7 +37,7 @@ function appRoutes(app: Application) {
   app.use('/api/v1/job-benefit', jobBenefitRoute);
   app.use('/api/v1/apply', applyRoute);
   app.use('/api/v1/package', packageRoute);
-  app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
+  // app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
   app.use('/api/v1/razorpay', paymentroute.razorpayRoute);
 
 
