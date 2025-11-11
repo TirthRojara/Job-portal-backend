@@ -5,7 +5,6 @@ import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.help
 import { Job, JobStatus } from '@prisma/client';
 import { CustomError, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { jobRoleService } from '../job-role/job-role.service';
-import { recruiterPackageService } from '../recruiter-package/recruiter-package.service';
 import { PassThrough } from 'stream';
 
 class JobService {

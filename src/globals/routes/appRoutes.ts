@@ -16,11 +16,12 @@ import jobRoute from '~/features/job/job.route';
 import packageRoute from '~/features/package/package.route';
 // import razorpayRoute from '~/features/payment/razorpay.route';
 import paymentroute from '~/features/payment/razorpay.route';
-import RecruiterPackageRoute from '~/features/recruiter-package/recruiter-package.route';
-import authRoute from '~/features/user/routes/auth.route';
-import userRouter from '~/features/user/routes/user.route';
+import authRoute from '~/features/auth/auth.route';
+import userRouter from '~/features/user/user.route';
+import testRoute from '~/features/testing module/test.route';
 
 function appRoutes(app: Application) {
+  app.use('/api/v1/testing', testRoute);
   app.use('/api/v1/users', userRouter);
   app.use('/api/v1/auth', authRoute);
   app.use('/api/v1/candidate-profiles', candidateProfileRoute);

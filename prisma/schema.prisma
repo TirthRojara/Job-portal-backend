@@ -20,13 +20,21 @@ enum Role {
   CANDIDATE
 }
 
+enum AuthType {
+  EMAIL
+  OAUTH
+}
+
 model User {
-  id                     Int                     @id @default(autoincrement())
-  name                   String?
-  email                  String                  @unique
-  password               String
-  role                   Role                    @default(CANDIDATE)
-  status                 Boolean                 @default(true)
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  role       Role     @default(CANDIDATE)
+  isVerified Boolean  @default(false)
+  authType   AuthType @default(EMAIL)
+  OauthId    String?
+
   candidateProfile       CandidateProfile?
   Company                Company[]
   Job                    Job[]
@@ -50,9 +58,9 @@ model RefreshToken {
   userId Int
 }
 
-enum AuthType {
-  EMAIL
-  OAUTH
+enum OTPFor {
+  VERIFICATION
+  FORGOT_PASSWORD
 }
 
 model AuthOTP {
@@ -61,9 +69,9 @@ model AuthOTP {
   expiresAt           DateTime?
   lastOtpSentAt       DateTime?
   resendCount         Int       @default(0)
-  type                AuthType
   failedLoginAttempts Int       @default(0)
   lockUntil           DateTime?
+  otpFor              OTPFor    @default(VERIFICATION)
 
   user   User @relation(fields: [userId], references: [id])
   userId Int  @unique

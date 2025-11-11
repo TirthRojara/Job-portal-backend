@@ -38,7 +38,7 @@ export class NotFountException extends CustomError {
     }
 }
 
-class UnauthorizedException extends CustomError {
+export class UnauthorizedException extends CustomError {
     status: string = 'error';
     statusCode: number = HTTP_STATUS.UNAUTHORIZED;
 

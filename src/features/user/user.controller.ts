@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '~/prisma';
-import { userService } from '../services/user.service';
+import { userService } from './user.service';
 import { BadRequestException } from '~/globals/cores/error.cores';
-import { userCreateSchema } from '../schemas/user.schema';
+import { userCreateSchema } from './user.schema';
 import HTTP_STATUS from '~/globals/constants/http.constant';
 
 class UserController {

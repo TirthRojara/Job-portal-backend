@@ -1,8 +1,9 @@
 interface UserPayLoad {
   id: number;
-  name: string;
   email: string;
   role: string;
+  
+  // isVerified: boolean;
 }
 
 interface Package {
