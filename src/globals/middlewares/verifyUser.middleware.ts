@@ -3,7 +3,7 @@ import { BadRequestException, UnauthorizedException } from '../cores/error.cores
 import jwt from 'jsonwebtoken';
 import { log } from '../helpers/log.helper';
 import { authService } from '~/features/auth/auth.service';
-import { JwtPayload, JwtVerifyPayload } from '~/features/auth/auth.interface';
+import { IJwtPayload, IJwtVerifyPayload } from '~/features/auth/auth.interface';
 import { userService } from '~/features/user/user.service';
 
 export async function verifyUser(req: Request, res: Response, next: NextFunction) {
@@ -32,13 +32,16 @@ export async function verifyUser(req: Request, res: Response, next: NextFunction
   // }
 
   try {
-    const token = req.headers.authorization?.split('')[1];
+    
+    const token = req.headers.authorization?.split(' ')[1];
 
-    log.info('ckecking in middleware', token);
+    log.info('ckecking in middleware');
+
+    // console.log(token)
 
     if (!token) throw new UnauthorizedException('Token in required');
 
-    const decoded = (await authService.verifyJwtToken(token, process.env.ACCESS_TOKEN_SECRET!)) as JwtVerifyPayload;
+    const decoded = (await authService.verifyJwtToken(token.trim(), process.env.ACCESS_TOKEN_SECRET!)) as IJwtVerifyPayload;
 
     await userService.checkUserVerified(Number(decoded.sub));
 

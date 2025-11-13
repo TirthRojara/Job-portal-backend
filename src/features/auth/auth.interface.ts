@@ -1,4 +1,6 @@
-export enum ROLE {
+import { Role } from '@prisma/client';
+
+export enum ROLEwithoutADMIN {
     CANDIDATE = 'CANDIDATE',
     RECRUITER = 'RECRUITER'
 }
@@ -9,19 +11,28 @@ export interface IRefreshToken {
     userId: number;
 }
 
-export type JwtPayload = {
+export type IJwtPayload = {
     sub: number;
     email: string;
-    role: ROLE;
+    role: Role;
 };
 
-export type JwtVerifyPayload = {
+export type IJwtVerifyPayload = {
     sub: string;
     email: string;
-    role: ROLE;
+    role: Role;
 };
 
+export type IJwtRefreshTokenPayload = {
+    sub: number;
+    email: string;
+}
 
+
+export type IJwtVerifyRefreshTokenPayload = {
+    sub: string;
+    email: string;
+}
 
 // Controller schema
 
@@ -29,7 +40,7 @@ export interface ISignUpPayload {
     name: string;
     email: string;
     password: string;
-    role: ROLE;
+    role: ROLEwithoutADMIN;
 }
 
 export enum ResentOtpType {
@@ -39,5 +50,36 @@ export enum ResentOtpType {
 
 export interface IResendOtp {
     email: string;
-    type: ResentOtpType
+    type: ResentOtpType;
+}
+
+export interface IVerifyPayload {
+    otp: number;
+    email: string;
+    isRememberMe: boolean;
+}
+
+export interface ILoginPayload {
+    email: string;
+    password: string;
+    isRememberMe: boolean;
+}
+
+export interface IChangePasswordPayload {
+    currentPassword: string;
+    newPassword: string;
+}
+
+export interface IForgotPasswordPayload {
+    email: string
+}
+
+export interface IVerifyForgotPasswordPayload {
+    email: string;
+    otp: number;
+}
+
+export interface IresetForgotPasswordPayload {
+    newPassword: string;
+    resetToken: string;
 }

@@ -3,8 +3,8 @@ export const generateOTP = (): number => {
 };
 
 export const OTP_DETAILS = {
-    // EXPIRATION_TIME: 3 * 60 * 1000, // 3 minutes
-    EXPIRATION_TIME:  5 * 1000, // 5 sec
+    // EXPIRATION_TIME:  5 * 1000, // 5 sec
+    EXPIRATION_TIME: 3 * 60 * 1000, // 3 minutes
     MIN_INTERVAL: 0.5 * 60 * 1000 , // 30 seconds
     PASSED_TIME:  4 * 60 * 60 * 1000,
     MAX_RESEND_COUNT: 3,
@@ -20,7 +20,7 @@ export const TOKEN_EXPIRY = {
 } as const;
 
 export const COOKIE_MAX_AGE = {
-    ACCESS: 15 * 60 * 1000, // 15 min in ms
+    // ACCESS: 15 * 60 * 1000, // 15 min in ms
     REFRESH: {
         NORMAL: 7 * 24 * 60 * 60 * 1000, // 7 days
         REMEMBER_ME: 30 * 24 * 60 * 60 * 1000, // 30 days

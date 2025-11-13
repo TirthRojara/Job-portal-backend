@@ -13,6 +13,7 @@ import {
 import { OTPFor, RecruiterPackageStatus, User } from '@prisma/client';
 import { generateOTP, OTP_DETAILS } from './auth.utils';
 import { log } from '~/globals/helpers/log.helper';
+import { IRefreshToken } from './auth.interface';
 
 class AuthService {
     // public async signUp(requestBody: any) {
@@ -80,15 +81,14 @@ class AuthService {
         const lastOtpSentAt = new Date();
 
         let auth = await prisma.authOTP.findUnique({
-            where: { userId, otpFor: context }
+            where: { userId }
         });
 
         // log.info('auth', auth);
         console.log(auth);
 
         if (!auth) {
-            
-            console.log('inside the if (!auth)')
+            console.log('inside the if (!auth)');
 
             const newAuth = await prisma.authOTP.create({
                 data: {
@@ -103,17 +103,18 @@ class AuthService {
 
             return otp;
         } else {
-
-            console.log('inside else')
+            console.log('inside else');
 
             if (auth.lastOtpSentAt && Date.now() - auth.lastOtpSentAt.getTime() < OTP_DETAILS.MIN_INTERVAL) {
                 throw new CustomErrorException('You must wait before requesting a new OTP', 429);
             }
 
             const now = Date.now();
-            if (auth.expiresAt === null || (auth.lastOtpSentAt && now - auth.lastOtpSentAt.getTime() > OTP_DETAILS.PASSED_TIME)) {
-
-                console.log(' resend count = 3')
+            if (
+                auth.expiresAt === null ||
+                (auth.lastOtpSentAt && now - auth.lastOtpSentAt.getTime() > OTP_DETAILS.PASSED_TIME)
+            ) {
+                console.log(' resend count = 3');
 
                 auth = await prisma.authOTP.update({
                     where: { userId },
@@ -122,8 +123,7 @@ class AuthService {
             }
 
             if (auth.resendCount <= 0) {
-
-                console.log(` inside \n if (auth.resendCount <= 0)`)
+                console.log(` inside \n if (auth.resendCount <= 0)`);
 
                 throw new ForbiddenException('You have reached the maximum resend limit');
             }
@@ -134,7 +134,8 @@ class AuthService {
                     otpCode: otp,
                     expiresAt,
                     resendCount: { decrement: 1 },
-                    lastOtpSentAt
+                    lastOtpSentAt,
+                    otpFor: context
                 }
             });
 
@@ -199,6 +200,22 @@ class AuthService {
         } catch (error) {
             throw new UnauthorizedException('Invalid token');
         }
+    }
+
+    public async storeRefreshToken(data: IRefreshToken) {
+        const refreshToken = await prisma.refreshToken.create({ data });
+
+        return refreshToken;
+    }
+
+    public getExpiryDate(refreshTokenExpiry: '7d' | '30d'): Date {
+        let now = new Date();
+        if (refreshTokenExpiry === '7d') {
+            now.setDate(now.getDate() + 7);
+        } else if (refreshTokenExpiry === '30d') {
+            now.setDate(now.getDate() + 30);
+        }
+        return now;
     }
 }
 

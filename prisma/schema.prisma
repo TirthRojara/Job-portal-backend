@@ -46,6 +46,8 @@ model User {
   checkLimitForRecruiter CheckLimitForRecruiter?
   accessTokens           RefreshToken[]
   authOTPs               AuthOTP?
+
+  // @@unique([email, isVerified(true)])
 }
 
 model RefreshToken {
@@ -72,6 +74,7 @@ model AuthOTP {
   failedLoginAttempts Int       @default(0)
   lockUntil           DateTime?
   otpFor              OTPFor    @default(VERIFICATION)
+  resetToken          String?
 
   user   User @relation(fields: [userId], references: [id])
   userId Int  @unique
