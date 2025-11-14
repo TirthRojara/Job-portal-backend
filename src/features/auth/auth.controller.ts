@@ -33,6 +33,15 @@ import { date } from 'joi';
 import tokens from 'razorpay/dist/types/tokens';
 import prisma from '~/prisma';
 import { Http2ServerRequest } from 'http2';
+// import { generateCodeVerifier, generateState } from 'arctic';
+// const { generateCodeVerifier, generateState } = await import('arctic');
+import { google } from './auth.OAuth';
+
+// async function loadArctic() {
+//   const { generateCodeVerifier, generateState } = await import('arctic');
+//   // use generateCodeVerifier, generateState here
+// }
+// loadArctic();
 
 class AuthController {
     public async signUp(req: Request, res: Response) {
@@ -280,7 +289,7 @@ class AuthController {
 
         const resetToken = req.headers.authorization?.split(' ')[1];
 
-        if (!resetToken) throw new UnauthorizedException('Reset token required')
+        if (!resetToken) throw new UnauthorizedException('Reset token required');
 
         console.log('reset key: ', process.env.RESET_TOKEN_SECRET);
 
@@ -319,6 +328,21 @@ class AuthController {
         });
     }
 
+    public async logout(req: Request, res: Response) {
+        const userId = req.currentUser.id;
+        const refreshToken = req.cookies['__secure-rtk'];
+
+        res.clearCookie('__secure-rtk');
+
+        await prisma.refreshToken.delete({
+            where: { token: refreshToken, userId }
+        });
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Logout successfully'
+        });
+    }
+
     // public async signUp(req: Request, res: Response, next: NextFunction) {
     //     const accessToken = await authService.signUp(req.body)
 
@@ -353,7 +377,86 @@ class AuthController {
     //     return res.status(HTTP_STATUS.OK).json({
     //         message: 'Logout successfully'
     //     })
-    // }p
+    // }
 }
 
+class GoogleAuthController {
+    public async getGoogleLoginPage(req: Request, res: Response) {
+        const { generateCodeVerifier, generateState } = await import('arctic');
+
+        if (req.currentUser) return res.redirect('/');
+
+        const state = generateState();
+        const codeVerifier = generateCodeVerifier();
+        const scopes = ['openid', 'profile', 'email'];
+        const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+
+        // store state as cookie
+        res.cookie('state', state, {
+            secure: true, // set to false in localhost
+            path: '/',
+            httpOnly: true,
+            maxAge: 60 * 10 // 10 min
+        });
+
+        // store code verifier as cookie
+        res.cookie('code_verifier', codeVerifier, {
+            secure: true, // set to false in localhost
+            path: '/',
+            httpOnly: true,
+            maxAge: 60 * 10 // 10 min
+        });
+
+        res.redirect(url.toString());
+    }
+
+    public async googleCallback(req: Request, res: Response) {
+
+        const { decodeIdToken } = await import('arctic');
+
+        const { code, state } = req.query;
+        console.log('code: ', code, ' state: ', state);
+
+        const storedState = req.cookies['state'];
+        const storedCodeVerifier = req.cookies['code_verifier'];
+
+        if (code === null || storedState === null || state !== storedState || storedCodeVerifier === null) {
+            throw new BadRequestException(
+                `Couldn't login with google because of invalid login attempt. Please try again!`
+            );
+            return res.redirect('googleAuth'); // => '/login'
+        }
+
+        try {
+            const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
+            // const accessToken = tokens.accessToken();
+
+            console.log('token google: ', tokens);
+
+            const claims = decodeIdToken(tokens.idToken())
+            const { sub: googleUserId, name, email} = claims as any
+
+            
+             
+            res.redirect('/')
+
+        } catch (e) {
+            throw new BadRequestException(
+                `Couldn't login with Google because of invalid login attempt. Please try again! \n ${e}`
+            );
+            // return res.redirect('/login');
+        }
+    }
+}
+
+export const googleAuthController: GoogleAuthController = new GoogleAuthController();
 export const authController: AuthController = new AuthController();
+
+//  "dev": "npx nodemon",
+
+// {
+//   "watch": ["src"],
+//   "ext": ".ts,.js",
+//   "ignore": [],
+//   "exec": "npx ts-node ./src/index.ts"
+// }

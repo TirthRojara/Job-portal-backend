@@ -26,14 +26,14 @@ enum AuthType {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String   @unique
-  password   String
-  role       Role     @default(CANDIDATE)
-  isVerified Boolean  @default(false)
-  authType   AuthType @default(EMAIL)
-  OauthId    String?
+  id             Int      @id @default(autoincrement())
+  name           String
+  email          String   @unique
+  password       String?
+  role           Role     @default(CANDIDATE)
+  isVerified     Boolean  @default(false)
+  authType       AuthType @default(EMAIL)
+  ProviderAuthId String?
 
   candidateProfile       CandidateProfile?
   Company                Company[]

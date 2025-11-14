@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { AuthType, Role } from '@prisma/client';
 
 export enum ROLEwithoutADMIN {
     CANDIDATE = 'CANDIDATE',
@@ -41,6 +41,7 @@ export interface ISignUpPayload {
     email: string;
     password: string;
     role: ROLEwithoutADMIN;
+    authType: AuthType
 }
 
 export enum ResentOtpType {

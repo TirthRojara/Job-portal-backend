@@ -1,6 +1,7 @@
 import Joi, { optional } from 'joi';
 import { IVerifyPayload, ResentOtpType, ROLEwithoutADMIN } from './auth.interface';
 import { emitWarning } from 'process';
+import { AuthType } from '@prisma/client';
 
 const passwordSchema = Joi.string()
     .trim()
@@ -16,7 +17,8 @@ export const signupSchema = Joi.object({
     email: Joi.string().email().required(),
     // password: passwordSchema,
     password: Joi.string().required(),
-    role: Joi.string().valid(ROLEwithoutADMIN.CANDIDATE, ROLEwithoutADMIN.RECRUITER).required()
+    role: Joi.string().valid(ROLEwithoutADMIN.CANDIDATE, ROLEwithoutADMIN.RECRUITER).required(),
+    authType: Joi.string().valid(AuthType.EMAIL, AuthType.OAUTH)
 });
 
 export const resendOtpSchema = Joi.object({

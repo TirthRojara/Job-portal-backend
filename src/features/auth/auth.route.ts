@@ -1,6 +1,6 @@
 import express from 'express';
 import asyncWrapper from '~/globals/cores/asyncWrapper.core';
-import { authController } from './auth.controller';
+import { authController, googleAuthController } from './auth.controller';
 import { verifyUser } from '~/globals/middlewares/verifyUser.middleware';
 import { validateSchema } from '~/globals/middlewares/validateSchema.middleware';
 import {
@@ -53,5 +53,13 @@ authRoute.post(
     validateSchema(resetForgotPasswordSchema),
     asyncWrapper(authController.resetForgotPassword)
 );
+
+authRoute.post('/logout', verifyUser, asyncWrapper(authController.logout));
+
+// #####    GOOGLE OAUTH    #### //
+
+authRoute.get('/getGoogleLoginPage', asyncWrapper(googleAuthController.getGoogleLoginPage));
+
+authRoute.get('/google/callback',  asyncWrapper(googleAuthController.));
 
 export default authRoute;

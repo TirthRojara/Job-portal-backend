@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { AuthType, User } from '@prisma/client';
 import {
     BadRequestException,
     CustomErrorException,
@@ -37,14 +37,11 @@ class UserService {
     // }
 
     public async createUser(userData: ISignUpPayload) {
-        const { name, email, password, role } = userData;
+        const { name, email, password, role, authType } = userData;
 
         const existedUser = await prisma.user.findUnique({
             where: { email }
         });
-        console.log(`existedUser in user service \n ${existedUser}`);
-
-        log.info('Existed User:', existedUser);
 
         if (existedUser) {
             if (existedUser.isVerified) {
@@ -52,18 +49,25 @@ class UserService {
             }
         }
 
-        // Hash password
-        const hashPassword = await bcrypt.hash(password, 10);
+        let hashPassword;
+        let newUser;
 
-        // const newUser = await prisma.user.create({
-        //     data: userData
-        // });
+        if (authType === AuthType.EMAIL) {
+            // Hash password
+            hashPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await prisma.user.upsert({
-            where: { email },
-            create: { name, email, password: hashPassword, role },
-            update: {}
-        });
+            newUser = await prisma.user.upsert({
+                where: { email },
+                create: { name, email, password: hashPassword, role },
+                update: { name, password: hashPassword }
+            });
+        } else {
+            newUser = await prisma.user.upsert({
+                where: { email },
+                create: { name, email, password: null, role },
+                update: { name }
+            });
+        }
 
         return newUser;
     }
