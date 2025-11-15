@@ -9,9 +9,10 @@ import {
 } from '~/globals/cores/error.cores';
 import prisma from '~/prisma';
 import bcrypt from 'bcrypt';
-import { IRefreshToken, ISignUpPayload } from '../auth/auth.interface';
+import { IOAuthSignupLoginPayload, IRefreshToken, ISignUpPayload } from '../auth/auth.interface';
 import { log } from '~/globals/helpers/log.helper';
 import { IUserUpdate } from './user.interface';
+import { profile } from 'console';
 
 class UserService {
     // public async createUser(requestBody: any): Promise<User>{
@@ -37,7 +38,7 @@ class UserService {
     // }
 
     public async createUser(userData: ISignUpPayload) {
-        const { name, email, password, role, authType } = userData;
+        const { name, email, password, role } = userData;
 
         const existedUser = await prisma.user.findUnique({
             where: { email }
@@ -49,25 +50,14 @@ class UserService {
             }
         }
 
-        let hashPassword;
-        let newUser;
+        // Hash password
+        const hashPassword = await bcrypt.hash(password, 10);
 
-        if (authType === AuthType.EMAIL) {
-            // Hash password
-            hashPassword = await bcrypt.hash(password, 10);
-
-            newUser = await prisma.user.upsert({
-                where: { email },
-                create: { name, email, password: hashPassword, role },
-                update: { name, password: hashPassword }
-            });
-        } else {
-            newUser = await prisma.user.upsert({
-                where: { email },
-                create: { name, email, password: null, role },
-                update: { name }
-            });
-        }
+        const newUser = await prisma.user.upsert({
+            where: { email },
+            create: { name, email, password: hashPassword, role, authType: AuthType.EMAIL },
+            update: {}
+        });
 
         return newUser;
     }
@@ -85,6 +75,9 @@ class UserService {
     }
 
     public async checkPassword(password: string, user: User, shouldMatch: boolean = true) {
+        ///////////////////
+        // if (user.password == null) throw new BadRequestException('password is null')
+
         const authOTP = await prisma.authOTP.findUnique({
             where: { userId: user.id }
         });
@@ -106,7 +99,7 @@ class UserService {
             throw new ForbiddenException(`Can't login till ${authOTP.lockUntil}`);
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password!); //////////////////////////////
         // log.info('check password isMatch: ', isMatch);
 
         if (shouldMatch && !isMatch) {
@@ -154,4 +147,87 @@ class UserService {
     }
 }
 
+class UserOAuthService {
+    public async OAuthSignupLogin(payload: IOAuthSignupLoginPayload) {
+        const { name, email, ProviderAuthId, authType, role } = payload;
+
+        let user = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        // new user ✅
+        // user but not verify ✅
+        // user exist, verify with email ✅
+        // try to login with Oauth and verify ✅
+
+        if (user) {
+            if (user.authType === AuthType.OAUTH && user.isVerified) {
+                return user;
+            }
+
+            if (user.authType === AuthType.EMAIL && user.isVerified) {
+                throw new CustomErrorException('Email already in use', 409);
+            }
+
+            // user email exist but not verify
+            const newUser = await prisma.user.update({
+                where: { email },
+                data: {
+                    name,
+                    email,
+                    password: null,
+                    role,
+                    isVerified: true,
+                    authType: AuthType.OAUTH,
+                    ProviderAuthId
+                }
+            });
+
+            return newUser;
+        } else {
+            // new user
+            const newUser = await prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    password: null,
+                    role,
+                    isVerified: true,
+                    authType: AuthType.OAUTH,
+                    ProviderAuthId
+                }
+            });
+
+            return newUser;
+        }
+    }
+
+    public async setPasswordForOauth(password: string, confirmPassword: string, userId: number) {
+        if (password !== confirmPassword) {
+            throw new BadRequestException('Confirm password must match password');
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (user!.password) throw new BadRequestException(`Can't set the pasword, try to change the pasword`)
+
+        if (user!.authType === AuthType.EMAIL) throw new BadRequestException('this is only for OAuth user');
+
+        if (user!.password !== null) {
+            throw new BadRequestException('User already has password');
+        }
+
+        // Hash password
+        const hashPassword = await bcrypt.hash(password, 10);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashPassword }
+        });
+    }
+}
+
 export const userService: UserService = new UserService();
+export const userOAuthService: UserOAuthService = new UserOAuthService();

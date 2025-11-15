@@ -1,7 +1,7 @@
 import Joi, { optional } from 'joi';
 import { IVerifyPayload, ResentOtpType, ROLEwithoutADMIN } from './auth.interface';
 import { emitWarning } from 'process';
-import { AuthType } from '@prisma/client';
+import { AuthType, Role } from '@prisma/client';
 
 const passwordSchema = Joi.string()
     .trim()
@@ -39,22 +39,35 @@ export const logInSchema = Joi.object({
 });
 
 export const changePasswordSchema = Joi.object({
-  currentPassword: Joi.string().min(1).required(),
-  // newPassword: passwordSchema
-  newPassword: Joi.string().min(1).required()
-})
+    currentPassword: Joi.string().min(1).required(),
+    // newPassword: passwordSchema
+    newPassword: Joi.string().min(1).required()
+});
 
 export const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email().required()
-})
+    email: Joi.string().email().required()
+});
 
 export const verifyForgotPasswordSchema = Joi.object({
-  email: Joi.string().email().required(),
-  otp: Joi.number().required().strict()
-})
+    email: Joi.string().email().required(),
+    otp: Joi.number().required().strict()
+});
 
 export const resetForgotPasswordSchema = Joi.object({
-  // newPassword: passwordSchema
-  newPassword: Joi.string().min(1).required(),
-  // resetToken: Joi.string().required().strict()
-})
+    // newPassword: passwordSchema
+    newPassword: Joi.string().min(1).required()
+    // resetToken: Joi.string().required().strict()
+});
+
+// Google OAuth schema
+
+export const roleCookieSchema = Joi.object({
+    role: Joi.string().required().valid(Role.CANDIDATE, Role.RECRUITER)
+});
+
+export const setPasswordForOauth = Joi.object({
+    password: Joi.string().min(1).required(),
+    confirmPassword: Joi.string().min(1).required().valid(Joi.ref('password'))
+    // password: passwordSchema,
+    // confirmPassword: passwordSchema
+});

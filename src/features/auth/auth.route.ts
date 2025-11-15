@@ -9,6 +9,8 @@ import {
     logInSchema,
     resendOtpSchema,
     resetForgotPasswordSchema,
+    roleCookieSchema,
+    setPasswordForOauth,
     signupSchema,
     verifyForgotPasswordSchema,
     verifySchema
@@ -54,12 +56,21 @@ authRoute.post(
     asyncWrapper(authController.resetForgotPassword)
 );
 
+authRoute.post(
+    '/setRoleCookie',
+    validateSchema(roleCookieSchema),
+    asyncWrapper(authController.setRoleCookie)
+);
+
+
 authRoute.post('/logout', verifyUser, asyncWrapper(authController.logout));
 
 // #####    GOOGLE OAUTH    #### //
 
 authRoute.get('/getGoogleLoginPage', asyncWrapper(googleAuthController.getGoogleLoginPage));
 
-authRoute.get('/google/callback',  asyncWrapper(googleAuthController.));
+authRoute.get('/google/callback',  asyncWrapper(googleAuthController.googleCallback));
+
+authRoute.post('/setPassword', verifyUser, validateSchema(setPasswordForOauth),asyncWrapper(googleAuthController.setPasswordForOauth))
 
 export default authRoute;

@@ -11,16 +11,19 @@ import {
     IJwtVerifyPayload,
     IJwtVerifyRefreshTokenPayload,
     ILoginPayload,
+    IOAuthSignupLoginPayload,
     IRefreshToken,
     IResendOtp,
     IresetForgotPasswordPayload,
+    IroleCookiePayload,
+    ISetPasswordPayload,
     ISignUpPayload,
     IVerifyForgotPasswordPayload,
     IVerifyPayload,
     ResentOtpType
 } from './auth.interface';
-import { userService } from '../user/user.service';
-import { OTPFor } from '@prisma/client';
+import { userOAuthService, userService } from '../user/user.service';
+import { AuthType, OTPFor } from '@prisma/client';
 import { sendEmail } from '~/globals/helpers/sendMail.helper';
 import {
     BadRequestException,
@@ -127,6 +130,10 @@ class AuthController {
             throw new ForbiddenException('Email not verified');
         }
 
+        if (user.authType === AuthType.OAUTH && user.password === null) {
+            throw new BadRequestException('Try to login with google');
+        }
+
         await userService.checkPassword(password, user);
 
         const accessPayload: IJwtPayload = {
@@ -175,6 +182,10 @@ class AuthController {
         console.log('req.currentuser: ', req.currentUser);
 
         const user = await userService.findUserByEmail(req.currentUser.email);
+
+        if (user.authType === AuthType.OAUTH && user.password === null) {
+            throw new BadRequestException('Before changing password first set the password');
+        }
 
         await userService.checkPassword(currentPassword, user);
         await userService.checkPassword(newPassword, user, false);
@@ -243,6 +254,10 @@ class AuthController {
         const user = await userService.findUserByEmail(email);
 
         if (!user.isVerified) throw new ForbiddenException('Email not verified');
+
+        if (user.authType === AuthType.OAUTH && user.password === null) {
+            throw new BadRequestException('Try to login with google first');
+        }
 
         const otp = await authService.generateOtp(user.id, OTPFor.FORGOT_PASSWORD);
 
@@ -343,6 +358,27 @@ class AuthController {
         });
     }
 
+    public async setRoleCookie(req: Request, res: Response) {
+        const { role } = req.body as IroleCookiePayload;
+
+        res.cookie('role', role, {
+            httpOnly: true,
+            // secure: true,
+            secure: false, // only in dev
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        console.log('role Cookie set');
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Role cookie is set',
+            data: {
+                role
+            }
+        });
+    }
+
     // public async signUp(req: Request, res: Response, next: NextFunction) {
     //     const accessToken = await authService.signUp(req.body)
 
@@ -393,70 +429,113 @@ class GoogleAuthController {
 
         // store state as cookie
         res.cookie('state', state, {
-            secure: true, // set to false in localhost
+            secure: false, // set to false in localhost
             path: '/',
             httpOnly: true,
-            maxAge: 60 * 10 // 10 min
+            maxAge: 10 * 60 * 1000, // 10 min
+            sameSite: 'lax' // for dev mode
         });
 
         // store code verifier as cookie
         res.cookie('code_verifier', codeVerifier, {
-            secure: true, // set to false in localhost
+            secure: false, // set to false in localhost
             path: '/',
             httpOnly: true,
-            maxAge: 60 * 10 // 10 min
+            maxAge: 10 * 60 * 1000, // 10 min
+            sameSite: 'lax' // for dev mode
         });
 
         res.redirect(url.toString());
     }
 
     public async googleCallback(req: Request, res: Response) {
-
         const { decodeIdToken } = await import('arctic');
 
         const { code, state } = req.query;
-        console.log('code: ', code, ' state: ', state);
 
         const storedState = req.cookies['state'];
         const storedCodeVerifier = req.cookies['code_verifier'];
 
         if (code === null || storedState === null || state !== storedState || storedCodeVerifier === null) {
-            throw new BadRequestException(
-                `Couldn't login with google because of invalid login attempt. Please try again!`
-            );
-            return res.redirect('googleAuth'); // => '/login'
+            throw new BadRequestException(`Please try again!`);
         }
 
         try {
             const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
-            // const accessToken = tokens.accessToken();
 
-            console.log('token google: ', tokens);
+            const role = req.cookies['role'];
 
-            const claims = decodeIdToken(tokens.idToken())
-            const { sub: googleUserId, name, email} = claims as any
+            const claims = decodeIdToken(tokens.idToken());
+            const { sub: googleUserId, name, email } = claims as any;
 
-            
-             
-            res.redirect('/')
+            // ******************************************
 
+            const payload: IOAuthSignupLoginPayload = {
+                name,
+                email,
+                authType: AuthType.OAUTH,
+                ProviderAuthId: googleUserId,
+                role
+            };
+
+            ///////////////////////
+            const user = await userOAuthService.OAuthSignupLogin(payload);
+
+            const accessPayload: IJwtPayload = {
+                sub: user.id,
+                email: user.email,
+                role: user.role
+            };
+
+            const refreshPayload: IJwtRefreshTokenPayload = {
+                sub: user.id,
+                email: user.email
+            };
+
+            const accessToken = authService.generateJwtToken(accessPayload, process.env.ACCESS_TOKEN_SECRET!, {
+                expiresIn: TOKEN_EXPIRY.ACCESS
+            });
+
+            const refreshTokenExpiry = TOKEN_EXPIRY.REFRESH.NORMAL;
+            const refreshToken = authService.generateJwtToken(refreshPayload, process.env.REFRESH_TOKEN_SECRET!, {
+                expiresIn: refreshTokenExpiry
+            });
+
+            res.cookie('__secure-rtk', refreshToken, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict',
+                maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
+            });
+
+            const expiresAt = authService.getExpiryDate(refreshTokenExpiry);
+            await authService.storeRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
+
+            // res.redirect('http://localhost:5173/success');
+
+            return res.status(HTTP_STATUS.OK).json({
+                message: 'User verified successfully',
+                data: {
+                    token: accessToken
+                }
+            });
         } catch (e) {
             throw new BadRequestException(
                 `Couldn't login with Google because of invalid login attempt. Please try again! \n ${e}`
             );
-            // return res.redirect('/login');
         }
+    }
+
+    public async setPasswordForOauth(req: Request, res: Response) {
+        const { password, confirmPassword } = req.body as ISetPasswordPayload;
+
+        await userOAuthService.setPasswordForOauth(password, confirmPassword, req.currentUser.id);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'password set successfully'
+        });
     }
 }
 
 export const googleAuthController: GoogleAuthController = new GoogleAuthController();
 export const authController: AuthController = new AuthController();
-
-//  "dev": "npx nodemon",
-
-// {
-//   "watch": ["src"],
-//   "ext": ".ts,.js",
-//   "ignore": [],
-//   "exec": "npx ts-node ./src/index.ts"
-// }

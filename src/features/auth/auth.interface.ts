@@ -41,7 +41,7 @@ export interface ISignUpPayload {
     email: string;
     password: string;
     role: ROLEwithoutADMIN;
-    authType: AuthType
+    authType: AuthType;
 }
 
 export enum ResentOtpType {
@@ -84,3 +84,23 @@ export interface IresetForgotPasswordPayload {
     newPassword: string;
     resetToken: string;
 }
+
+// Google OAuth controller 
+
+export interface IroleCookiePayload {
+    role: string
+}
+
+export interface IOAuthSignupLoginPayload {
+    name: string;
+    email: string;
+    authType: AuthType;
+    ProviderAuthId: string;
+    role: Role;
+}
+
+export interface ISetPasswordPayload {
+    password: string;
+    confirmPassword: string;
+}
+
