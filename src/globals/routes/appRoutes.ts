@@ -19,6 +19,7 @@ import paymentroute from '~/features/payment/razorpay.route';
 import authRoute from '~/features/auth/auth.route';
 import userRouter from '~/features/user/user.route';
 import testRoute from '~/features/testing module/test.route';
+import chatRoute from '~/features/chat/chat.route';
 
 function appRoutes(app: Application) {
   app.use('/api/v1/testing', testRoute);
@@ -40,6 +41,8 @@ function appRoutes(app: Application) {
   app.use('/api/v1/package', packageRoute);
   // app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
   app.use('/api/v1/razorpay', paymentroute.razorpayRoute);
+  app.use('/api/v1/chat', chatRoute);
+  
 
 
   // app.use('/api/v1/razorpay/webhook', express.raw({ type: 'application/json' }), paymentroute.razorpayWebhookRoute);
