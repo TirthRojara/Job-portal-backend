@@ -5,163 +5,172 @@ import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.help
 import { jobService } from '../job/job.service';
 import { BadRequestException, NotFountException } from '~/globals/cores/error.cores';
 import { IApplyStatus } from './apply.interface';
+import { getIo } from '~/socketManager';
 
 class ApplyService {
-  // add feature - if missing skill then show to both Candidate and Recruiter.
-  // candidate apply for a job
-  public async create(jobId: number, currentUser: UserPayLoad): Promise<Apply> {
-    const candidateProfile = await candidateProfileService.readOne(currentUser.id);
-    await jobService.readOne(jobId);
-    await jobService.findOneActive(jobId);
-    const alreadyApply = await this.findCandidateWithJobId(candidateProfile.id, jobId)
+    // add feature - if missing skill then show to both Candidate and Recruiter.
+    // candidate apply for a job
+    public async create(jobId: number, currentUser: UserPayLoad): Promise<Apply> {
+        const candidateProfile = await candidateProfileService.readOne(currentUser.id);
+        // await jobService.readOne(jobId);
+        const job = await jobService.findOneActive(jobId);
+        // const alreadyApply = await this.findCandidateWithJobId(candidateProfile.id, jobId);
 
-    if (alreadyApply) {
-        throw new BadRequestException(`You can't apply to the same job`)
+        // if (alreadyApply) {
+        //     throw new BadRequestException(`You can't apply to the same job`);
+        // }
+
+        const apply = await prisma.apply.create({
+            data: {
+                candidateProfileId: candidateProfile.id,
+                jobId,
+                companyId: job.companyId
+            }
+        });
+
+        return apply;
     }
 
-    const apply = await prisma.apply.create({
-      data: {
-        candidateProfileId: candidateProfile.id,
-        jobId
-      }
-    });
+    public async readMyApplicationsForCandidate(
+        { page, limit }: { page: number; limit: number },
+        currentUser: UserPayLoad
+    ) {
+        const condidateProfile = await candidateProfileService.readOne(currentUser.id);
 
-    return apply;
-  }
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter: '',
+            filterFields: [],
+            entity: 'apply',
+            additionCondition: { candidateProfileId: condidateProfile.id },
+            orderCondition: { applyDate: 'desc' }
+        });
 
-  public async readMyApplicationsForCandidate(
-    { page, limit }: { page: number; limit: number },
-    currentUser: UserPayLoad
-  ) {
-    const condidateProfile = await candidateProfileService.readOne(currentUser.id);
+        return { apply: data, totalCount, totalPages };
+    }
 
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter: '',
-      filterFields: [],
-      entity: 'apply',
-      additionCondition: { candidateProfileId: condidateProfile.id },
-      orderCondition: { applyDate: 'desc' }
-    });
+    public async readMyApplicationsForRECRUITER(
+        { page, limit }: { page: number; limit: number },
+        jobId: number,
+        companyId: number,
+        currentUser: UserPayLoad
+    ) {
+        const job = await jobService.findOne(jobId, companyId, currentUser.id);
 
-    return { apply: data, totalCount, totalPages };
-  }
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter: '',
+            filterFields: [],
+            entity: 'apply',
+            additionCondition: { jobId: job.id },
+            orderCondition: { applyDate: 'desc' },
+            include: {},
+            select: {
+                applyDate: true,
+                status: true,
+                // jobId: true,
+                candidateProfile: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        gender: true,
+                        phone: true,
+                        cv: true,
+                        birthDate: true,
+                        address: true,
+                        userId: true
+                    }
+                }
+            }
+        });
 
-  public async readMyApplicationsForRECRUITER(
-    { page, limit }: { page: number; limit: number },
-    jobId: number,
-    companyId: number,
-    currentUser: UserPayLoad
-  ) {
-    const job = await jobService.findOne(jobId, companyId, currentUser.id);
+        // await prisma.apply.findMany({
+        //   where: { jobId: job.id },
+        //   include: {
+        //     candidateProfile: {
+        //       select: {
+        //         id: true,
+        //         fullName: true,
+        //         gender: true,
+        //         phone: true,
+        //         cv: true,
+        //         birthDate: true,
+        //         address: true
+        //       }
+        //     }
+        //   }
+        // });
+        // await prisma.apply.findMany({
+        //   where: { jobId: job.id },
+        //   select: {
+        //     applyDate: true,
+        //     status: true,
+        //     jobId: true,
+        //     candidateProfile: {
+        //       select: {
+        //         id: true,
+        //         fullName: true,
+        //         gender: true,
+        //         phone: true,
+        //         cv: true,
+        //         birthDate: true,
+        //         address: true
+        //       }
+        //     }
+        //   }
+        // });
 
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter: '',
-      filterFields: [],
-      entity: 'apply',
-      additionCondition: { jobId: job.id },
-      orderCondition: { applyDate: 'desc' },
-      include: {},
-      select: {
-        applyDate: true,
-        status: true,
-        // jobId: true,
-        candidateProfile: {
-          select: {
-            id: true,
-            fullName: true,
-            gender: true,
-            phone: true,
-            cv: true,
-            birthDate: true,
-            address: true
-          }
-        }
-      }
-    });
+        return { apply: data, totalCount, totalPages };
+    }
 
-    // await prisma.apply.findMany({
-    //   where: { jobId: job.id },
-    //   include: {
-    //     candidateProfile: {
-    //       select: {
-    //         id: true,
-    //         fullName: true,
-    //         gender: true,
-    //         phone: true,
-    //         cv: true,
-    //         birthDate: true,
-    //         address: true
-    //       }
-    //     }
-    //   }
-    // });
-    // await prisma.apply.findMany({
-    //   where: { jobId: job.id },
-    //   select: {
-    //     applyDate: true,
-    //     status: true,
-    //     jobId: true,
-    //     candidateProfile: {
-    //       select: {
-    //         id: true,
-    //         fullName: true,
-    //         gender: true,
-    //         phone: true,
-    //         cv: true,
-    //         birthDate: true,
-    //         address: true
-    //       }
-    //     }
-    //   }
-    // });
+    public async findCandidateWithJobId(candidateProfileId: number, jobId: number): Promise<Apply> {
+        const apply = await prisma.apply.findFirst({
+            where: {
+                candidateProfileId,
+                jobId
+            }
+        });
 
-    return { apply: data, totalCount, totalPages };
-  }
+        if (!apply) throw new NotFountException(`Can't find application`);
 
-  public async findCandidateWithJobId(candidateProfileId: number, jobId: number): Promise<Apply> {
-    const apply = await prisma.apply.findUnique({
-      where: {
-        candidateProfileId_jobId: {
-          candidateProfileId,
-          jobId
-        }
-      }
-    });
+        return apply;
+    }
 
-    if (!apply) throw new NotFountException(`Can't find application`);
+    public async updateStatus(
+        requestBody: IApplyStatus,
+        jobId: number,
+        companyId: number,
+        currentUser: UserPayLoad
+    ): Promise<Apply> {
+        const { candidateProfileId, status } = requestBody;
 
-    return apply;
-  }
+        await jobService.findOne(jobId, companyId, currentUser.id);
+        await this.findCandidateWithJobId(candidateProfileId, jobId);
 
-  public async updateStatus(
-    requestBody: IApplyStatus,
-    jobId: number,
-    companyId: number,
-    currentUser: UserPayLoad
-  ): Promise<Apply> {
-    const { candidateProfileId, status } = requestBody;
+        const apply = await prisma.apply.update({
+            where: {
+                candidateProfileId_jobId: {
+                    candidateProfileId,
+                    jobId
+                }
+            },
+            data: {
+                status
+            }
+        });
 
-    await jobService.findOne(jobId, companyId, currentUser.id);
-    await this.findCandidateWithJobId(candidateProfileId, jobId);
+        // Emit status update event to candidate in real time
+        const io = getIo();
+        // io.to(`candidate_10`).emit('statusUpdated', {
+        io.to(`candidate_${currentUser.id}`).emit('statusUpdated', {
+            jobId,
+            status
+        });
 
-    const apply = await prisma.apply.update({
-      where: {
-        candidateProfileId_jobId: {
-          candidateProfileId,
-          jobId
-        }
-      },
-      data: {
-        status
-      }
-    });
-
-    return apply;
-  }
+        return apply;
+    }
 }
 
 export const applyService: ApplyService = new ApplyService();

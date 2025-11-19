@@ -8,78 +8,110 @@ import cors from 'cors';
 import asyncWrapper from './globals/cores/asyncWrapper.core';
 import { razorpayController } from './features/payment/razorpay.controller';
 import Routes from './globals/routes/appRoutes';
-// import bodyParser from 'body-parser';
+import { Server as SocketIOServer } from 'socket.io';
+import http from 'http';
+import { initSocket } from './socketManager';
 
 class Server {
-  private app: Application;
+    private app: Application;
+    private httpServer: http.Server;
+    private io: SocketIOServer;
 
-  constructor() {
-    this.app = express();
-  }
+    constructor() {
+        this.app = express();
+        this.httpServer = http.createServer(this.app);
 
-  public start(): void {
-    this.setUpMiddleware();
-    this.setUpRoutes();
-    this.setUpGlobalError();
-    this.listenServer();
-  }
+        // this.io = new SocketIOServer(this.httpServer, {
+        //     cors: {
+        //         origin: ['http://localhost:5173', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins
+        //         methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        //         credentials: true
+        //     }
+        // });
+        
+        this.io = initSocket(this.httpServer)
+    }
 
+    public start(): void {
+        this.setUpMiddleware();
+        this.setUpRoutes();
+        this.setUpSocket();
+        this.setUpGlobalError();
+        this.listenServer();
+    }
 
-  private setUpMiddleware(): void {
-    this.app.use(
-      cors({
-        // origin: 'http://localhost:5173', // frontend origin
-        // origin: 'https://conchate-moistly-lucy.ngrok-free.dev', // ngrok
-        origin: ['http://localhost:5173', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        credentials: true
-      })
-    );
+    private setUpMiddleware(): void {
+        // this.app.use(
+        //     cors({
+        //         // origin: 'http://localhost:5173', // frontend origin
+        //         // origin: 'https://conchate-moistly-lucy.ngrok-free.dev', // ngrok
+        //         origin: ['http://localhost:5173', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins
+        //         methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        //         credentials: true
+        //     })
+        // );
 
-    Routes.razorpayWebhookRoute(this.app);
+        Routes.razorpayWebhookRoute(this.app);
 
-    this.app.use(express.json()); // req.body  // postman input
-    this.app.use(cookieParser());
+        this.app.use(express.json()); // req.body  // postman input
+        this.app.use(cookieParser());
 
-    // this.app.use(SubscriptionMiddleware)
-  }
+        // this.app.use(SubscriptionMiddleware)
+    }
 
-  private setUpRoutes(): void {
-    Routes.appRoutes(this.app);
-  }
+    private setUpRoutes(): void {
+        Routes.appRoutes(this.app);
+    }
 
-  private setUpGlobalError(): void {
-    this.app.all('*', (req, res, next) => {
-      // res.status(404).json({
-      //   message: `The URL ${req.originalUrl} not found with method ${req.method}`
-      // });
-      next(new NotFountException(`The URL ${req.originalUrl} not found with method ${req.method}`));
-    });
-
-    //next(new BadRequestException('asdfdsdfsdf))
-
-    //Global Error => error, req, res, next
-    this.app.use((error: any, req: Request, res: Response, next: NextFunction) => {
-      console.log('check error: ', error);
-      if (error instanceof CustomError) {
-        return res.status(error.statusCode).json({
-          message: error.message
+    private setUpGlobalError(): void {
+        this.app.all('*', (req, res, next) => {
+            // res.status(404).json({
+            //   message: `The URL ${req.originalUrl} not found with method ${req.method}`
+            // });
+            next(new NotFountException(`The URL ${req.originalUrl} not found with method ${req.method}`));
         });
-      }
 
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-        messaage: 'Something went wrong'
-      });
-    });
-  }
+        //next(new BadRequestException('asdfdsdfsdf))
 
-  private listenServer() {
-    // const port = process.env.PORT || 3030;
-    const port = process.env.PORT || 3000;
-    this.app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
-    });
-  }
+        //Global Error => error, req, res, next
+        this.app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+            console.log('check error: ', error);
+            if (error instanceof CustomError) {
+                return res.status(error.statusCode).json({
+                    message: error.message
+                });
+            }
+
+            return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+                messaage: 'Something went wrong'
+            });
+        });
+    }
+
+    private setUpSocket() {
+        this.io.on('connection', (socket) => {
+            console.log('New client connected, socket id:', socket.id);
+
+            socket.on('disconnect', () => {
+                console.log('Client disconnected, socket id:', socket.id);
+            });
+        });
+    }
+
+    // private listenServer() {
+    //     // const port = process.env.PORT || 3030;
+    //     const port = process.env.PORT || 3000;
+    //     this.app.listen(port, () => {
+    //         console.log(`Server is running on port ${port}`);
+    //     });
+    // }
+    private listenServer() {
+        // const port = process.env.PORT || 3030;
+        const port = process.env.PORT || 3000;
+        this.httpServer.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
+        });
+    }
 }
 
 export default Server;

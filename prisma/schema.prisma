@@ -105,6 +105,7 @@ model CandidateProfile {
   CandidateSkill      CandidateSkill[]
   CandidateExperience CandidateExperience[]
   Apply               Apply[]
+  chats               Chat[]
 }
 
 model Language {
@@ -226,6 +227,8 @@ model Company {
   CompanyImage    CompanyImage[]
   CompanyIndustry CompanyIndustry[]
   Job             Job[]
+  applies         Apply[]
+  chats           Chat[]
 }
 
 model CompanyImage {
@@ -332,8 +335,12 @@ enum ApplyStatus {
 }
 
 model Apply {
+  id        Int         @id @default(autoincrement())
   applyDate DateTime    @default(now()) @db.Timestamp
   status    ApplyStatus @default(PENDING)
+
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId Int
 
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   candidateProfileId Int
@@ -341,7 +348,8 @@ model Apply {
   job   Job @relation(fields: [jobId], references: [id])
   jobId Int
 
-  @@id([candidateProfileId, jobId])
+  // @@id([candidateProfileId, jobId])
+  @@unique([candidateProfileId, jobId])
 }
 
 model Package {
@@ -480,4 +488,18 @@ model PaymentHistory {
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
+}
+
+model Chat {
+  id Int @id @default(autoincrement())
+
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  candidateProfileId Int
+  company            Company          @relation(fields: [companyId], references: [id])
+  companyId          Int
+
+  chatRoomId String   @unique
+  messages   Json? //[{senderId, content, createdAt}
+  createdAt  DateTime @default(now())
+  updateAt   DateTime @updatedAt
 }
