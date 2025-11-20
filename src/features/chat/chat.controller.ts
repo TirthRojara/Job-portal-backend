@@ -50,6 +50,32 @@ class ChatController {
             data: chat
         });
     }
+
+    public async getChatForCandidate(req: Request, res: Response) {
+        const chatRoomId = req.params.chatRoomId
+
+        const chat = await chatservice.getChatForCandidate(req.currentUser, chatRoomId)
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get chat successfully',
+            data: chat
+        });
+    }
+
+    public async getChatForRECRUITER(req: Request, res: Response) {
+        const chatRoomId = req.params.chatRoomId
+        const companyId = Number(req.params.companyId)
+
+        const chat = await chatservice.getChatForRECRUITER(req.currentUser, chatRoomId, companyId)
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get chat successfully',
+            data: chat
+        });
+    }
+
+
+    
 }
 
 export const chatController: ChatController = new ChatController();

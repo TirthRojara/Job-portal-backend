@@ -7,8 +7,32 @@ import { Role } from '@prisma/client';
 
 const chatRoute = express.Router();
 
-chatRoute.get('/chatListForCandidate', verifyUser, allowAccess(Role.CANDIDATE), asyncWrapper(chatController.getChatListForCandidate));
+chatRoute.get(
+    '/chatListForCandidate',
+    verifyUser,
+    allowAccess(Role.CANDIDATE),
+    asyncWrapper(chatController.getChatListForCandidate)
+);
 
-chatRoute.get('/chatListForRecruiter/:companyId', verifyUser, allowAccess(Role.RECRUITER), asyncWrapper(chatController.getChatListForRecruiter));
+chatRoute.get(
+    '/chatListForRecruiter/:companyId',
+    verifyUser,
+    allowAccess(Role.RECRUITER),
+    asyncWrapper(chatController.getChatListForRecruiter)
+);
+
+chatRoute.get(
+    '/chatForCandidate/:chatRoomId',
+    verifyUser,
+    allowAccess(Role.CANDIDATE),
+    asyncWrapper(chatController.getChatForCandidate)
+);
+
+chatRoute.get(
+    '/chatForRECRUITER/:companyId/:chatRoomId',
+    verifyUser,
+    allowAccess(Role.RECRUITER),
+    asyncWrapper(chatController.getChatForRECRUITER)
+);
 
 export default chatRoute;

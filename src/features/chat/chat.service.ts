@@ -32,7 +32,7 @@ class ChatService {
             }
         });
 
-        console.log('chat data :', data)
+        console.log('chat data :', data);
 
         return { chat: data, totalCount, totalPages };
     }
@@ -67,6 +67,36 @@ class ChatService {
         });
 
         return { chat: data, totalCount, totalPages };
+    }
+
+    public async getChatForCandidate(currentUser: UserPayLoad, chatRoomId: string) {
+        const candidateProfile = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id },
+            select: { id: true }
+        });
+
+        if (!candidateProfile) throw new BadRequestException('Invalid request');
+
+        const chat = await prisma.chat.findUnique({
+            where: { candidateProfileId: candidateProfile.id, chatRoomId }
+        });
+
+        return chat;
+    }
+
+    public async getChatForRECRUITER(currentUser: UserPayLoad, chatRoomId: string, companyId: number) {
+        const isUserHasCompany = await prisma.company.findUnique({
+            where: { id: companyId, userId: currentUser.id },
+            select: { id: true }
+        });
+
+        if (!isUserHasCompany) throw new BadRequestException('Invalid request');
+
+        const chat = await prisma.chat.findUnique({
+            where: { companyId, chatRoomId }
+        });
+
+        return chat;
     }
 }
 
