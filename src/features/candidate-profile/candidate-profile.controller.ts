@@ -42,7 +42,7 @@ class CandidateProfileController {
   }
 
   public async update(req: Request, res: Response) {
-    const candidate = await candidateProfileService.update(req.currentUser.id, req.body);
+    const candidate = await candidateProfileService.update(req.currentUser.id, req.body, req.files as Express.Multer.File[]);
 
     return res.status(HTTP_STATUS.OK).json({
       message: 'Update candidate profile successfully',

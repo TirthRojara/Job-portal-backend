@@ -12,39 +12,40 @@ import { uploadCV } from '~/globals/helpers/upload.helper';
 const candidateProfileRoute = express.Router();
 
 candidateProfileRoute.post(
-  '/',
-  verifyUser,
-  allowAccess(Role.CANDIDATE),
-  uploadCV.array('cv'),    //('cv', 1)  //both are same 
-  validateSchema(candidateProfile_Create_Schema),
-  asyncWrapper(candidateProfileController.create)
+    '/',
+    verifyUser,
+    allowAccess(Role.CANDIDATE),
+    uploadCV.array('cv'), //('cv', 1)  //both are same
+    validateSchema(candidateProfile_Create_Schema),
+    asyncWrapper(candidateProfileController.create)
 );
 
 // candidateProfileRoute.get('/', verifyUser, asyncWrapper(candidateProfileController.readAll))
 candidateProfileRoute.get(
-  '/',
-  verifyUser,
-  //   asyncWrapper(checkPermission_A_R), // admin, recruiter
-  allowAccess('ADMIN'),
-  asyncWrapper(candidateProfileController.readAll)
+    '/',
+    verifyUser,
+    //   asyncWrapper(checkPermission_A_R), // admin, recruiter
+    allowAccess('ADMIN'),
+    asyncWrapper(candidateProfileController.readAll)
 );
 
 candidateProfileRoute.get('/me', verifyUser, asyncWrapper(candidateProfileController.readOne));
 
 candidateProfileRoute.patch(
-  '/update',
-  verifyUser,
-  validateSchema(candidateProfile_Update_Schema),
-  asyncWrapper(candidateProfileController.update)
+    '/update',
+    verifyUser,
+    uploadCV.array('cv'),
+    validateSchema(candidateProfile_Update_Schema),
+    asyncWrapper(candidateProfileController.update)
 );
 
 candidateProfileRoute.delete('/delete', verifyUser, asyncWrapper(candidateProfileController.remove));
 
 candidateProfileRoute.get(
-  '/:id',
-  verifyUser,
-  asyncWrapper(checkPermission('candidateProfile', 'userId')),
-  asyncWrapper(candidateProfileController.readById)
+    '/:id',
+    verifyUser,
+    asyncWrapper(checkPermission('candidateProfile', 'userId')),
+    asyncWrapper(candidateProfileController.readById)
 );
 
 export default candidateProfileRoute;

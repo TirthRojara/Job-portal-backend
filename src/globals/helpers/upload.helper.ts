@@ -36,7 +36,19 @@ const CVStorage = multer.diskStorage({
     }
 });
 
-export const uploadCV = multer({ storage: CVStorage })
+function pdfFileFilter(req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
+  if (file.mimetype === 'application/pdf') {
+    cb(null, true); // Accept the file
+  } else {
+    cb(new Error('Only PDF files are allowed!'));
+  }
+}
+
+export const uploadCV = multer({
+    storage: CVStorage,
+    limits: { fileSize: 5 * 1024 * 1024},
+    fileFilter: pdfFileFilter
+});
 
 export async function deleteCV(cvUrl: string) {
     const uploadDir = path.join(__dirname, '../../../uploads/candidate-cv', cvUrl);
@@ -47,4 +59,3 @@ export async function deleteCV(cvUrl: string) {
         console.error(`Error deleting image: ${error}`);
     }
 }
-
