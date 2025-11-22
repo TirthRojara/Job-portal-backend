@@ -6,12 +6,16 @@ import { validateSchema } from '~/globals/middlewares/validateSchema.middleware'
 import { candidateProfile_Create_Schema, candidateProfile_Update_Schema } from './candidate-profile.schema';
 import { checkPermission, checkPermission_A_R } from '~/globals/middlewares/checkPermission.middleware';
 import { allowAccess } from '~/globals/middlewares/allowAccess.middleware';
+import { Role } from '@prisma/client';
+import { uploadCV } from '~/globals/helpers/upload.helper';
 
 const candidateProfileRoute = express.Router();
 
 candidateProfileRoute.post(
   '/',
   verifyUser,
+  allowAccess(Role.CANDIDATE),
+  uploadCV.array('cv'),    //('cv', 1)  //both are same 
   validateSchema(candidateProfile_Create_Schema),
   asyncWrapper(candidateProfileController.create)
 );

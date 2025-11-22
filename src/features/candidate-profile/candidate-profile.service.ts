@@ -4,15 +4,19 @@ import prisma from '~/prisma';
 import { ICandidateProfile } from './candidate-profile.interface';
 
 class CandidateProfileService {
-  public async create(requestBody: ICandidateProfile, currentUser: UserPayLoad): Promise<CandidateProfile> {
+  public async create(requestBody: ICandidateProfile, currentUser: UserPayLoad, file: Express.Multer.File[]): Promise<CandidateProfile> {
     // const { fullName, gender, phone, cv, birthDate, address } = requestBody;
-    const { birthDate, ...rest } = requestBody;
+    const { birthDate, openToWork, ...rest } = requestBody;
+
+    const cvURL = file[0].filename
 
     const candidateProfile = await prisma.candidateProfile.create({
       data: {
         ...rest,
+        cv: cvURL,
         birthDate: new Date(birthDate),
-        userId: currentUser.id
+        userId: currentUser.id,
+        openToWork: Boolean(openToWork)
       }
     });
 

@@ -11,6 +11,7 @@ import Routes from './globals/routes/appRoutes';
 import { Server as SocketIOServer } from 'socket.io';
 import http from 'http';
 import { initSocket } from './socketManager';
+import path from 'path';
 
 class Server {
     private app: Application;
@@ -28,8 +29,8 @@ class Server {
         //         credentials: true
         //     }
         // });
-        
-        this.io = initSocket(this.httpServer)
+
+        this.io = initSocket(this.httpServer);
     }
 
     public start(): void {
@@ -52,6 +53,8 @@ class Server {
         // );
 
         Routes.razorpayWebhookRoute(this.app);
+
+        this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
         this.app.use(express.json()); // req.body  // postman input
         this.app.use(cookieParser());

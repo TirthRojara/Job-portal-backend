@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from 'express';
+import { Express, NextFunction, Request, Response } from 'express';
 import { candidateProfileService } from './candidate-profile.service';
 import HTTP_STATUS from '~/globals/constants/http.constant';
 
 class CandidateProfileController {
   public async create(req: Request, res: Response, next: NextFunction) {
-    const candidateProfile = await candidateProfileService.create(req.body, req.currentUser);
+    const candidateProfile = await candidateProfileService.create(req.body, req.currentUser, req.files as Express.Multer.File[]);
 
     return res.status(HTTP_STATUS.CREATED).json({
       message: 'Create candidate profilel successfully',
