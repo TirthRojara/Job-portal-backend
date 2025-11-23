@@ -19,3 +19,7 @@ export const candidateProfile_Update_Schema = Joi.object({
   address: Joi.string().optional(),
   openToWork: Joi.boolean().optional()
 });
+
+export const viewResume = Joi.object({
+  companyId: Joi.number().required()
+})

@@ -1,8 +1,11 @@
-import { CandidateProfile } from '@prisma/client';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { CandidateProfile, Role } from '@prisma/client';
+import { BadRequestException, NotFountException } from '~/globals/cores/error.cores';
 import prisma from '~/prisma';
 import { ICandidateProfile } from './candidate-profile.interface';
 import { deleteCV } from '~/globals/helpers/upload.helper';
+import path from 'path';
+import fs from 'fs/promises';
+import { error } from 'console';
 
 class CandidateProfileService {
     public async create(
@@ -105,6 +108,55 @@ class CandidateProfileService {
         await prisma.candidateProfile.delete({
             where: { userId: id }
         });
+    }
+
+    public async getResume(candidateId: number): Promise<string> {
+        const candidate = await prisma.candidateProfile.findUnique({
+            where: { id: candidateId },
+            select: { cv: true }
+        });
+
+        if (!candidate) throw new BadRequestException('Candidate does not have resume');
+
+        const resumePath = path.join(__dirname, '../../../uploads/candidate-cv', `${candidate.cv}`);
+
+        try {
+            await fs.access(resumePath, fs.constants.F_OK);
+            return resumePath;
+        } catch (error) {
+            throw new BadRequestException(`Resume not found, ${error}`);
+        }
+    }
+
+    public async viewResumeForCandidate(currentUser: UserPayLoad) {
+        const candidate = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id },
+            select: { id: true }
+        });
+
+        if (!candidate) throw new BadRequestException('Invalid request');
+
+        const resumePath = await this.getResume(candidate.id);
+
+        return resumePath;
+    }
+
+    public async viewResumeForRecruiter(currentUser: UserPayLoad, candidateId: number, companyId: number) {
+        const company = await prisma.company.findUnique({
+            where: { id: companyId, userId: currentUser.id },
+            select: { id: true }
+        });
+        if (!company) throw new BadRequestException('Invalid request');
+
+        const isRecruiterHasAccess = await prisma.apply.findFirst({
+            where: { candidateProfileId: candidateId, companyId: company.id }
+        });
+
+        if (!isRecruiterHasAccess) throw new BadRequestException('Invalid request');
+
+        const resumePath = await this.getResume(candidateId);
+
+        return resumePath;
     }
 }
 
