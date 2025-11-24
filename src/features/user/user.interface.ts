@@ -1,5 +1,6 @@
 import { AuthType } from '@prisma/client';
-import { ROLE } from '../auth/auth.interface';
+// import { ROLE } from '../auth/auth.interface';
+import { ROLEwithoutADMIN } from '../auth/auth.interface';
 
 export interface IUserUpdate {
   name: string;
@@ -11,7 +12,7 @@ export interface IUserUpdate {
 }
 
 export interface IUser extends IUserUpdate {
-  role: ROLE;
+  role: ROLEwithoutADMIN;
 }
 
 

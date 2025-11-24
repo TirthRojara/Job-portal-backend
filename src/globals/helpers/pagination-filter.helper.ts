@@ -24,6 +24,7 @@ export async function getPaginationAndFilter({
   //   { name: { contains: filter, mode: 'insensitive' } },
   //   { description: { contains: filter, mode: 'insensitive' } }
   // ]
+  console.log('condition:', condition);
 
   const where = filter
     ? {

@@ -145,6 +145,15 @@ class UserService {
             throw new UnauthorizedException('User is not verified');
         }
     }
+
+    public async getUserData(currentUser: UserPayLoad) {
+        const user = await prisma.user.findUnique({
+            where: { id: currentUser.id },
+            select: { id: true, email: true, name: true, role: true, authType: true}
+        });
+
+        return user
+    }
 }
 
 class UserOAuthService {
@@ -211,7 +220,7 @@ class UserOAuthService {
             where: { id: userId }
         });
 
-        if (user!.password) throw new BadRequestException(`Can't set the pasword, try to change the pasword`)
+        if (user!.password) throw new BadRequestException(`Can't set the pasword, try to change the pasword`);
 
         if (user!.authType === AuthType.EMAIL) throw new BadRequestException('this is only for OAuth user');
 
