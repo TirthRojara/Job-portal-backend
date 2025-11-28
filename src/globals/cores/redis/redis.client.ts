@@ -1,9 +1,14 @@
-import Redis from "ioredis";
+import Redis from 'ioredis';
 
-const redisClient = new Redis()
+// const redisClient = new Redis()
 
-export default redisClient;
- 
+// export default redisClient;
+
+const redisPublisher = new Redis();
+const redisSubscriber = new Redis();
+
+export { redisPublisher, redisSubscriber };
+
 // async function  testRedis() {
 //     await client.set('testKey', 'testValue')
 //     const test = await client.get('testKey')
@@ -11,4 +16,4 @@ export default redisClient;
 //     await client.disconnect()
 // }
 
-// testRedis() 
+// testRedis()

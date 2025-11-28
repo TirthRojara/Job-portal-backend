@@ -7,6 +7,8 @@ import prisma from './prisma';
 import { Role } from '@prisma/client';
 import { handleJoinChat } from './features/socket.io/chat/joinChat.socket';
 import { handleSendMessage } from './features/socket.io/chat/sendMessageHandler.socket';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { redisPublisher, redisSubscriber } from './globals/cores/redis/redis.client';
 
 let io: SocketIOServer | null = null;
 
@@ -18,6 +20,9 @@ export const initSocket = (httpServer: any): SocketIOServer => {
             credentials: true
         }
     });
+
+    // Plug in Redis adapter for scaling
+    io.adapter(createAdapter(redisPublisher, redisSubscriber));
 
     io.use(async (socket, next) => {
         try {
