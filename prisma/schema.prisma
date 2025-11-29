@@ -58,6 +58,9 @@ model RefreshToken {
 
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
+
+  @@index([token, userId])
+  @@index([expiresAt])
 }
 
 enum OTPFor {
