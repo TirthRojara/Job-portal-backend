@@ -7,7 +7,9 @@ import Redis from 'ioredis';
 const redisPublisher = new Redis();
 const redisSubscriber = new Redis();
 
-export { redisPublisher, redisSubscriber };
+const redisClient = new Redis();
+
+export { redisPublisher, redisSubscriber, redisClient };
 
 // async function  testRedis() {
 //     await client.set('testKey', 'testValue')
