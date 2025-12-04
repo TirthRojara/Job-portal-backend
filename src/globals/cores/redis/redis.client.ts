@@ -12,10 +12,10 @@ const redisClient = new Redis();
 export { redisPublisher, redisSubscriber, redisClient };
 
 // async function  testRedis() {
-//     await client.set('testKey', 'testValue')
-//     const test = await client.get('testKey')
+//     await redisClient.set('testKey', 'testValue')
+//     const test = await redisClient.get('testKey')
 //     console.log({test})
-//     await client.disconnect()
+//     await redisClient.disconnect()
 // }
 
 // testRedis()
