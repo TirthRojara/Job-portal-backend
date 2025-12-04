@@ -23,14 +23,14 @@ class PackageService {
     }
 
     public async readAllForRecruiter(): Promise<Package[]> {
-        const catchData = await redisClient.get(`${RedisKey.PACKAGE.ALL}`);
-        if (catchData) return JSON.parse(catchData) as Package[];
+        const cacheData = await redisClient.get(`${RedisKey.PACKAGE.ALL}`);
+        if (cacheData) return JSON.parse(cacheData) as Package[];
 
         const pkg = await prisma.package.findMany({
             where: { isActive: true }
         });
 
-        await redisClient.set(`${RedisKey.PACKAGE.ALL}`, JSON.stringify(pkg), 'EX', 86400);
+        redisClient.set(`${RedisKey.PACKAGE.ALL}`, JSON.stringify(pkg), 'EX', 86400);
 
         return pkg;
     }
@@ -48,8 +48,8 @@ class PackageService {
     public async readOneForRecruiter(id: number): Promise<Package> {
         console.log('package service,  packageId : ' + id);
 
-        const catchData = await redisClient.get(RedisKey.PACKAGE.BY_ID(id));
-        if (catchData) return JSON.parse(catchData) as Package;
+        const cacheData = await redisClient.get(RedisKey.PACKAGE.BY_ID(id));
+        if (cacheData) return JSON.parse(cacheData) as Package;
 
         const pkg = await prisma.package.findFirst({
             where: { id: id, isActive: true }
@@ -57,7 +57,7 @@ class PackageService {
 
         if (!pkg) throw new NotFountException(`Package: ${id} not found`);
 
-        await redisClient.set(RedisKey.PACKAGE.BY_ID(id), JSON.stringify(pkg), 'EX', 86400);
+        redisClient.set(RedisKey.PACKAGE.BY_ID(id), JSON.stringify(pkg), 'EX', 86400);
 
         return pkg;
     }

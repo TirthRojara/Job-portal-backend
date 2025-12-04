@@ -1,6 +1,8 @@
 export const RedisKey = {
-    USER: 'user',
-    // PACKAGE: 'package'
+    USER: {
+        CANDIDATE_EDUCATION: (id: number | string) => `user:${id}:candidateEducation`,
+        
+    } as const,
 
     PACKAGE: {
     ALL: 'packages:all',

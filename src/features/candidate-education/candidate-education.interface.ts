@@ -10,6 +10,7 @@ export interface ICandidateEducationUpdate {
   degree: Degree;
   yearStart: number;
   yearEnd: number;
+  educationId: number;
 }
 
 export interface ICandidateEducationCreate extends ICandidateEducationUpdate {

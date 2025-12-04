@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  // output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,40 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  RECRUITER
-  CANDIDATE
-}
-
-enum AuthType {
-  EMAIL
-  OAUTH
-}
-
 model User {
-  id             Int      @id @default(autoincrement())
-  name           String
-  email          String   @unique
-  password       String?
-  role           Role     @default(CANDIDATE)
-  isVerified     Boolean  @default(false)
-  authType       AuthType @default(EMAIL)
-  ProviderAuthId String?
-
+  id                     Int                     @id @default(autoincrement())
+  name                   String
+  email                  String                  @unique
+  password               String?
+  role                   Role                    @default(CANDIDATE)
+  isVerified             Boolean                 @default(false)
+  authType               AuthType                @default(EMAIL)
+  ProviderAuthId         String?
+  authOTPs               AuthOTP?
   candidateProfile       CandidateProfile?
+  checkLimitForRecruiter CheckLimitForRecruiter?
   Company                Company[]
   Job                    Job[]
-  RecruiterPackage       RecruiterPackage[]
-  Subscription           Subscription[]
   PaymentHistory         PaymentHistory[]
-  // RecruiterPackageold RecruiterPackage[]
-  // Order               Order[]
-  checkLimitForRecruiter CheckLimitForRecruiter?
+  RecruiterPackage       RecruiterPackage?
   accessTokens           RefreshToken[]
-  authOTPs               AuthOTP?
-
-  // @@unique([email, isVerified(true)])
+  Subscription           Subscription[]
 }
 
 model RefreshToken {
@@ -55,17 +32,11 @@ model RefreshToken {
   token     String   @unique
   createdAt DateTime @default(now())
   expiresAt DateTime
-
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token, userId])
   @@index([expiresAt])
-}
-
-enum OTPFor {
-  VERIFICATION
-  FORGOT_PASSWORD
 }
 
 model AuthOTP {
@@ -78,57 +49,41 @@ model AuthOTP {
   lockUntil           DateTime?
   otpFor              OTPFor    @default(VERIFICATION)
   resetToken          String?
-
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int  @unique
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
+  userId              Int       @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CandidateProfile {
-  id         Int      @id @default(autoincrement())
-  fullName   String
-  gender     Gender
-  phone      String   @unique
-  cv         String
-  birthDate  DateTime @db.Date
-  address    String
-  openToWork Boolean  @default(false)
-  status     Boolean  @default(true)
-
-  user   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
-
-  CandidateLanguage   CandidateLanguage[]
-  CandidateEducation  CandidateEducation[]
-  CandidateSkill      CandidateSkill[]
-  CandidateExperience CandidateExperience[]
+  id                  Int                   @id @default(autoincrement())
+  fullName            String
+  gender              Gender
+  phone               String                @unique
+  cv                  String
+  birthDate           DateTime              @db.Date
+  address             String
+  openToWork          Boolean               @default(false)
+  status              Boolean               @default(true)
+  userId              Int                   @unique
   Apply               Apply[]
+  CandidateEducation  CandidateEducation[]
+  CandidateExperience CandidateExperience[]
+  CandidateLanguage   CandidateLanguage[]
+  user                User                  @relation(fields: [userId], references: [id])
+  CandidateSkill      CandidateSkill[]
   chats               Chat[]
 }
 
 model Language {
-  name String @id
-
+  name              String              @id
   CandidateLanguage CandidateLanguage[]
-}
-
-enum Level {
-  NATIVE
-  FLUENT
-  BASIC
 }
 
 model CandidateLanguage {
   level              Level            @default(BASIC)
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   candidateProfileId Int
-  language           Language         @relation(fields: [languageName], references: [name])
   languageName       String
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  language           Language         @relation(fields: [languageName], references: [name])
 
   @@unique([candidateProfileId, languageName])
 }
@@ -140,23 +95,16 @@ model Education {
   CandidateEducation CandidateEducation[]
 }
 
-enum Degree {
-  BACHELOR
-  MASTER
-  PHD
-}
-
 model CandidateEducation {
+  id                 Int              @id @default(autoincrement())
   major              String
   degree             Degree           @default(BACHELOR)
   yearStart          Int
   yearEnd            Int
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   candidateProfileId Int
-  education          Education        @relation(fields: [educationId], references: [id])
   educationId        Int
-
-  @@id([candidateProfileId, educationId])
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  education          Education        @relation(fields: [educationId], references: [id])
 }
 
 model Skill {
@@ -168,50 +116,33 @@ model Skill {
 
 model CandidateSkill {
   id                 Int              @id @default(autoincrement())
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   candidateProfileId Int
-  skill              Skill            @relation(fields: [skillId], references: [id])
   skillId            Int
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  skill              Skill            @relation(fields: [skillId], references: [id])
 
   @@unique([candidateProfileId, skillId])
 }
 
-enum WorkPlace {
-  ONSITE
-  REMOTE
-  HYBRID
-}
-
 model CandidateExperience {
-  id               Int       @id @default(autoincrement())
-  companyName      String
-  department       String
-  startDate        DateTime  @db.Date
-  endDate          DateTime? @db.Date
-  position         String
-  description      String
-  currentlyWorking Boolean   @default(false)
-  workPlace        WorkPlace @default(ONSITE)
-  location         String
-
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  id                 Int              @id @default(autoincrement())
+  companyName        String
+  department         String
+  startDate          DateTime         @db.Date
+  endDate            DateTime?        @db.Date
+  position           String
+  description        String
+  currentlyWorking   Boolean          @default(false)
+  workPlace          WorkPlace        @default(ONSITE)
+  location           String
   candidateProfileId Int
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
 
   @@unique([id, candidateProfileId])
 }
 
-enum TeamSizeRange {
-  ZERO_TO_ONE
-  TWO_TO_TEN
-  ELEVEN_TO_FIFTY
-  FIFTY_ONE_TO_TWO_HUNDRED
-  TWO_HUNDRED_ONE_TO_FIVE_HUNDRED
-  FIVE_HUNDRED_ONE_TO_ONE_THOUSAND
-  OVER_ONE_THOUSAND
-}
-
 model Company {
-  id              Int            @id @default(autoincrement())
+  id              Int               @id @default(autoincrement())
   name            String
   description     String
   location        String
@@ -221,25 +152,22 @@ model Company {
   teamSizeLabel   TeamSizeRange?
   totalEmployees  Int
   establishedDate DateTime
-  isApproved      Boolean        @default(false)
-  views           Int?           @default(0)
-
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
-
+  isApproved      Boolean           @default(false)
+  views           Int?              @default(0)
+  userId          Int
+  applies         Apply[]
+  chats           Chat[]
+  user            User              @relation(fields: [userId], references: [id])
   CompanyImage    CompanyImage[]
   CompanyIndustry CompanyIndustry[]
   Job             Job[]
-  applies         Apply[]
-  chats           Chat[]
 }
 
 model CompanyImage {
-  id       Int    @id @default(autoincrement())
-  imageUrl String
-
-  company   Company @relation(fields: [companyId], references: [id])
+  id        Int     @id @default(autoincrement())
+  imageUrl  String
   companyId Int
+  company   Company @relation(fields: [companyId], references: [id])
 }
 
 model Industry {
@@ -249,13 +177,11 @@ model Industry {
 }
 
 model CompanyIndustry {
-  id Int @id @default(autoincrement())
-
-  company   Company @relation(fields: [companyId], references: [id])
-  companyId Int
-
-  industry   Industry @relation(fields: [industryId], references: [id])
+  id         Int      @id @default(autoincrement())
+  companyId  Int
   industryId Int
+  company    Company  @relation(fields: [companyId], references: [id])
+  industry   Industry @relation(fields: [industryId], references: [id])
 
   @@unique([companyId, industryId])
 }
@@ -266,15 +192,8 @@ model JobRole {
   Job  Job[]
 }
 
-enum JobStatus {
-  PENDING
-  ACTIVE
-  EXPIRED
-  REJECTED
-}
-
 model Job {
-  id                  Int       @id @default(autoincrement())
+  id                  Int          @id @default(autoincrement())
   title               String
   description         String
   responsibilities    String
@@ -284,32 +203,27 @@ model Job {
   status              JobStatus
   salaryMin           Int
   salaryMax           Int
-  postedAt            DateTime  @default(now()) @db.Timestamp
-  applicationDeadline DateTime  @db.Date
-  updateAt            DateTime? @updatedAt
-  totalview           Int       @default(0)
-  isDeleted           Boolean   @default(false)
-
-  company   Company @relation(fields: [companyId], references: [id])
-  companyId Int
-
-  postBy   User @relation(fields: [postById], references: [id])
-  postById Int
-
-  jobRole   JobRole @relation(fields: [jobRoleId], references: [id])
-  jobRoleId Int
-
-  JobSkill   JobSkill[]
-  JobBenefit JobBenefit[]
-  Apply      Apply[]
+  postedAt            DateTime     @default(now()) @db.Timestamp(6)
+  applicationDeadline DateTime     @db.Date
+  updateAt            DateTime?    @updatedAt
+  totalview           Int          @default(0)
+  isDeleted           Boolean      @default(false)
+  companyId           Int
+  postById            Int
+  jobRoleId           Int
+  Apply               Apply[]
+  company             Company      @relation(fields: [companyId], references: [id])
+  jobRole             JobRole      @relation(fields: [jobRoleId], references: [id])
+  postBy              User         @relation(fields: [postById], references: [id])
+  JobBenefit          JobBenefit[]
+  JobSkill            JobSkill[]
 }
 
 model JobSkill {
-  job   Job @relation(fields: [jobId], references: [id])
-  jobId Int
-
-  skill   Skill @relation(fields: [skillId], references: [id])
+  jobId   Int
   skillId Int
+  job     Job   @relation(fields: [jobId], references: [id])
+  skill   Skill @relation(fields: [skillId], references: [id])
 
   @@id([jobId, skillId])
 }
@@ -320,38 +234,25 @@ model Benefit {
 }
 
 model JobBenefit {
-  job   Job @relation(fields: [jobId], references: [id])
-  jobId Int
-
-  benefit     Benefit @relation(fields: [benefitName], references: [name])
+  jobId       Int
   benefitName String
+  benefit     Benefit @relation(fields: [benefitName], references: [name])
+  job         Job     @relation(fields: [jobId], references: [id])
 
   @@id([jobId, benefitName])
 }
 
-enum ApplyStatus {
-  PENDING
-  VIEWED
-  SELECTED
-  NOTSELECT
-  INTOUCH
-}
-
 model Apply {
-  id        Int         @id @default(autoincrement())
-  applyDate DateTime    @default(now()) @db.Timestamp
-  status    ApplyStatus @default(PENDING)
-
-  company   Company @relation(fields: [companyId], references: [id])
-  companyId Int
-
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  id                 Int              @id @default(autoincrement())
+  applyDate          DateTime         @default(now()) @db.Timestamp(6)
+  status             ApplyStatus      @default(PENDING)
+  companyId          Int
   candidateProfileId Int
+  jobId              Int
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  company            Company          @relation(fields: [companyId], references: [id])
+  job                Job              @relation(fields: [jobId], references: [id])
 
-  job   Job @relation(fields: [jobId], references: [id])
-  jobId Int
-
-  // @@id([candidateProfileId, jobId])
   @@unique([candidateProfileId, jobId])
 }
 
@@ -364,91 +265,26 @@ model Package {
   isActive         Boolean            @default(true)
   RecruiterPackage RecruiterPackage[]
   Subscription     Subscription[]
-  // RecruiterPackageold RecruiterPackage[]
-  // Order               Order[]
 }
 
 model CheckLimitForRecruiter {
-  id       Int @id @default(autoincrement())
-  jobCount Int @default(0)
-
-  recruiter   User @relation(fields: [recruiterId], references: [id])
+  id          Int  @id @default(autoincrement())
+  jobCount    Int  @default(0)
   recruiterId Int  @unique
-}
-
-// this model is only for one time payment so it can only use with order.create
-// model RecruiterPackage {
-//   id        Int      @id @default(autoincrement())
-//   startDate DateTime @default(now())
-//   endDate   DateTime @db.Date
-
-//   recruiter   User @relation(fields: [recruiterId], references: [id])
-//   recruiterId Int
-
-//   package   Package @relation(fields: [packageId], references: [id])
-//   packageId Int
-// }
-
-// enum OrderStatus {
-//   PENDING
-//   SUCCESS
-//   FAILED
-//   CANCELLED
-//   EXPIRED
-// }
-
-// this model is only for one time payment so it can only use with order.create
-// model Order {
-//   id         Int         @id @default(autoincrement())
-//   totalPrice Float       @default(0)
-//   status     OrderStatus @default(PENDING)
-
-//   razorpayOrderId   String? @unique
-//   razorpayReceiptId String? @unique
-//   razorpayPaymentId String? @unique
-//   razorpaySignature String?
-
-//   currency  String?  @default("INR")
-//   attempts  Int?     @default(0)
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   recruiter   User @relation(fields: [recruiterId], references: [id])
-//   recruiterId Int
-
-//   package   Package @relation(fields: [packageId], references: [id])
-//   packageId Int
-// }
-
-enum RecruiterPackageStatus {
-  ACTIVE
-  EXPIRED
-  CANCELLED
+  recruiter   User @relation(fields: [recruiterId], references: [id])
 }
 
 model RecruiterPackage {
-  id        Int       @id @default(autoincrement())
-  startDate DateTime  @default(now())
-  endDate   DateTime? @db.Date
-
+  id                     Int                    @id @default(autoincrement())
+  startDate              DateTime               @default(now())
+  endDate                DateTime?              @db.Date
   razorpaySubscriptionId String?                @unique
   status                 RecruiterPackageStatus
   billingCycleCount      Int?                   @default(0)
-
-  User   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
-
-  package   Package @relation(fields: [packageId], references: [id])
-  packageId Int
-}
-
-enum SubscriptionStatus {
-  CREATED
-  ACTIVE
-  PAUSED
-  CANCELLED
-  COMPLETED
-  HALTED
+  userId                 Int                    @unique
+  packageId              Int
+  package                Package                @relation(fields: [packageId], references: [id])
+  User                   User                   @relation(fields: [userId], references: [id])
 }
 
 model Subscription {
@@ -456,25 +292,17 @@ model Subscription {
   razorpaySubscriptionId String             @unique
   razorpayPlanId         String
   status                 SubscriptionStatus
-  startAt                DateTime? // Subscription start date
-  endAt                  DateTime? // Optional end date, if defined
-  totalCount             Int? // Total billing cycles count, null for infinite
-  paidCount              Int? // Count of paid cycles so far
+  startAt                DateTime?
+  endAt                  DateTime?
+  totalCount             Int?
+  paidCount              Int?
   currency               String             @default("INR")
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
-
-  recruiter   User @relation(fields: [recruiterId], references: [id])
-  recruiterId Int
-
-  package   Package @relation(fields: [packageId], references: [id])
-  packageId Int
-}
-
-enum PaymentStatus {
-  SUCCESSFUL
-  FAILED
-  REFUNDED
+  recruiterId            Int
+  packageId              Int
+  package                Package            @relation(fields: [packageId], references: [id])
+  recruiter              User               @relation(fields: [recruiterId], references: [id])
 }
 
 model PaymentHistory {
@@ -488,21 +316,104 @@ model PaymentHistory {
   failureReason          String?
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
-
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  userId                 Int
+  user                   User          @relation(fields: [userId], references: [id])
 }
 
 model Chat {
-  id Int @id @default(autoincrement())
-
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  id                 Int              @id @default(autoincrement())
   candidateProfileId Int
-  company            Company          @relation(fields: [companyId], references: [id])
   companyId          Int
+  chatRoomId         String           @unique
+  messages           Json?
+  createdAt          DateTime         @default(now())
+  updateAt           DateTime         @updatedAt
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  company            Company          @relation(fields: [companyId], references: [id])
+}
 
-  chatRoomId String   @unique
-  messages   Json? //[{senderId, content, createdAt}
-  createdAt  DateTime @default(now())
-  updateAt   DateTime @updatedAt
+enum Role {
+  ADMIN
+  RECRUITER
+  CANDIDATE
+}
+
+enum AuthType {
+  EMAIL
+  OAUTH
+}
+
+enum OTPFor {
+  VERIFICATION
+  FORGOT_PASSWORD
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Level {
+  NATIVE
+  FLUENT
+  BASIC
+}
+
+enum Degree {
+  BACHELOR
+  MASTER
+  PHD
+}
+
+enum WorkPlace {
+  ONSITE
+  REMOTE
+  HYBRID
+}
+
+enum TeamSizeRange {
+  ZERO_TO_ONE
+  TWO_TO_TEN
+  ELEVEN_TO_FIFTY
+  FIFTY_ONE_TO_TWO_HUNDRED
+  TWO_HUNDRED_ONE_TO_FIVE_HUNDRED
+  FIVE_HUNDRED_ONE_TO_ONE_THOUSAND
+  OVER_ONE_THOUSAND
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REJECTED
+}
+
+enum ApplyStatus {
+  PENDING
+  VIEWED
+  SELECTED
+  NOTSELECT
+  INTOUCH
+}
+
+enum RecruiterPackageStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  CREATED
+  ACTIVE
+  PAUSED
+  CANCELLED
+  COMPLETED
+  HALTED
+}
+
+enum PaymentStatus {
+  SUCCESSFUL
+  FAILED
+  REFUNDED
 }
