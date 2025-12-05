@@ -9,28 +9,40 @@ import { allowAccess } from '~/globals/middlewares/allowAccess.middleware';
 const candidateLanguageRoute = express.Router();
 
 candidateLanguageRoute.post(
-  '/me',
-  verifyUser,
-  validateSchema(candidateLanguageCreateSchema),
-  asyncWrapper(candidateLanguageController.create)
+    '/me',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    validateSchema(candidateLanguageCreateSchema),
+    asyncWrapper(candidateLanguageController.create)
 );
 
 candidateLanguageRoute.get(
-  '/readAll',
-  verifyUser,
-  allowAccess('ADMIN'),
-  asyncWrapper(candidateLanguageController.readAll)
+    '/readAll',
+    verifyUser,
+    allowAccess('ADMIN'),
+    asyncWrapper(candidateLanguageController.readAll)
 );
 
-candidateLanguageRoute.get('/me', verifyUser, asyncWrapper(candidateLanguageController.readMyLanguage));
+candidateLanguageRoute.get(
+    '/me',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    asyncWrapper(candidateLanguageController.readMyLanguage)
+);
 
 candidateLanguageRoute.patch(
-  '/me/:languageName',
-  verifyUser,
-  validateSchema(candidateLanguageUpdateSchema),
-  asyncWrapper(candidateLanguageController.updateLevel)
+    '/me/:languageName',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    validateSchema(candidateLanguageUpdateSchema),
+    asyncWrapper(candidateLanguageController.updateLevel)
 );
 
-candidateLanguageRoute.delete('/me/:languageName', verifyUser, asyncWrapper(candidateLanguageController.remove));
+candidateLanguageRoute.delete(
+    '/me/:languageName',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    asyncWrapper(candidateLanguageController.remove)
+);
 
 export default candidateLanguageRoute;

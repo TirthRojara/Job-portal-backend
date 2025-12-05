@@ -58,13 +58,13 @@ class CandidateProfileController {
         });
     }
 
-    public async remove(req: Request, res: Response) {
-        await candidateProfileService.remove(req.currentUser.id);
+    // public async remove(req: Request, res: Response) {
+    //     await candidateProfileService.remove(req.currentUser.id);
 
-        return res.status(HTTP_STATUS.OK).json({
-            message: 'Delete candidate profile successfully'
-        });
-    }
+    //     return res.status(HTTP_STATUS.OK).json({
+    //         message: 'Delete candidate profile successfully'
+    //     });
+    // }
 
     public async viewResumeForCandidate(req: Request, res: Response) {
         const resumePath = await candidateProfileService.viewResumeForCandidate(req.currentUser);

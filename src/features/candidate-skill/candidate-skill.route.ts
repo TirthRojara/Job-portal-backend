@@ -11,26 +11,33 @@ const candidateSkillRoute = express.Router();
 candidateSkillRoute.get('/skills', verifyUser, asyncWrapper(candidateSkillController.getAllSkill));
 
 candidateSkillRoute.post(
-  '/me',
-  verifyUser,
-  validateSchema(candidateSkillSchema),
-  asyncWrapper(candidateSkillController.create)
+    '/me',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    validateSchema(candidateSkillSchema),
+    asyncWrapper(candidateSkillController.create)
 );
 
 candidateSkillRoute.get(
-  '/getAllUser',
-  verifyUser,
-  allowAccess('ADMIN'),
-  asyncWrapper(candidateSkillController.readAllUserSkill)
+    '/getAllUser',
+    verifyUser,
+    allowAccess('ADMIN'),
+    asyncWrapper(candidateSkillController.readAllUserSkill)
 );
 
-candidateSkillRoute.get('/me', verifyUser, asyncWrapper(candidateSkillController.readMySkill));
+candidateSkillRoute.get(
+    '/me',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    asyncWrapper(candidateSkillController.readMySkill)
+);
 
 candidateSkillRoute.delete(
-  '/me',
-  verifyUser,
-  validateSchema(candidateSkillSchema),
-  asyncWrapper(candidateSkillController.remove)
+    '/me',
+    verifyUser,
+    allowAccess('CANDIDATE'),
+    validateSchema(candidateSkillSchema),
+    asyncWrapper(candidateSkillController.remove)
 );
 
 export default candidateSkillRoute;

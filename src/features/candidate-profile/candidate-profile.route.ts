@@ -30,25 +30,36 @@ candidateProfileRoute.get(
     asyncWrapper(candidateProfileController.readAll)
 );
 
-candidateProfileRoute.get('/me', verifyUser, asyncWrapper(candidateProfileController.readOne));
+candidateProfileRoute.get(
+    '/me',
+    verifyUser,
+    allowAccess(Role.CANDIDATE),
+    asyncWrapper(candidateProfileController.readOne)
+);
 
 candidateProfileRoute.patch(
     '/update',
     verifyUser,
+    allowAccess(Role.CANDIDATE),
     uploadCV.array('cv'),
     validateSchema(candidateProfile_Update_Schema),
     asyncWrapper(candidateProfileController.update)
 );
 
-candidateProfileRoute.delete('/delete', verifyUser, asyncWrapper(candidateProfileController.remove));
+// candidateProfileRoute.delete(
+//     '/delete',
+//     verifyUser,
+//     allowAccess(Role.CANDIDATE),
+//     asyncWrapper(candidateProfileController.remove)
+// );
 
 candidateProfileRoute.get(
     '/:id',
     verifyUser,
+    allowAccess(Role.RECRUITER, Role.ADMIN),
     asyncWrapper(checkPermission('candidateProfile', 'userId')),
     asyncWrapper(candidateProfileController.readById)
 );
-
 
 candidateProfileRoute.get(
     '/resume/candidate',

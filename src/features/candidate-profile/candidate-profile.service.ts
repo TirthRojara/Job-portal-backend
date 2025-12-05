@@ -6,6 +6,8 @@ import { deleteCV } from '~/globals/helpers/upload.helper';
 import path from 'path';
 import fs from 'fs/promises';
 import { error } from 'console';
+import { redisClient } from '~/globals/cores/redis/redis.client';
+import { RedisKey } from '~/globals/constants/redis.constant';
 
 class CandidateProfileService {
     public async create(
@@ -38,21 +40,31 @@ class CandidateProfileService {
     }
 
     public async readOne(id: number): Promise<CandidateProfile> {
+        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.PROFILE(id));
+        if (cacheData) return JSON.parse(cacheData);
+
         const candidate: CandidateProfile | null = await prisma.candidateProfile.findUnique({
             where: { userId: id }
         });
 
         if (!candidate) throw new NotFountException(`Candidate profile with User ID: ${id} not found`);
 
+        redisClient.set(RedisKey.USER.CANDIDATE.PROFILE(id), JSON.stringify(candidate), 'EX', 7200);
+
         return candidate;
     }
 
     public async readById(id: number): Promise<CandidateProfile> {
+        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.PROFILE(id));
+        if (cacheData) return JSON.parse(cacheData);
+
         const candidate: CandidateProfile | null = await prisma.candidateProfile.findUnique({
             where: { id }
         });
 
         if (!candidate) throw new NotFountException(`Candidate profile with User ID: ${id} not found`);
+
+        redisClient.set(RedisKey.USER.CANDIDATE.PROFILE(id), JSON.stringify(candidate), 'EX', 7200);
 
         return candidate;
     }
@@ -89,6 +101,9 @@ class CandidateProfileService {
                 deleteCV(oldCV.cv);
             }
 
+            await redisClient.del(RedisKey.USER.CANDIDATE.RESUME(id))
+            await redisClient.del(RedisKey.USER.CANDIDATE.PROFILE(id));
+
             return profileUpdate;
         } else {
             const profileUpdate = await prisma.candidateProfile.update({
@@ -99,16 +114,20 @@ class CandidateProfileService {
                 }
             });
 
+            await redisClient.del(RedisKey.USER.CANDIDATE.PROFILE(id));
+
             return profileUpdate;
         }
     }
 
-    public async remove(id: number): Promise<void> {
-        await this.readOne(id);
-        await prisma.candidateProfile.delete({
-            where: { userId: id }
-        });
-    }
+    // public async remove(id: number): Promise<void> {
+    //     await this.readOne(id);
+    //     await prisma.candidateProfile.delete({
+    //         where: { userId: id }
+    //     });
+
+    //     await redisClient.del(RedisKey.USER.CANDIDATE.PROFILE(id));
+    // }
 
     public async getResume(candidateId: number): Promise<string> {
         const candidate = await prisma.candidateProfile.findUnique({
@@ -128,7 +147,10 @@ class CandidateProfileService {
         }
     }
 
-    public async viewResumeForCandidate(currentUser: UserPayLoad) {
+    public async viewResumeForCandidate(currentUser: UserPayLoad): Promise<string> {
+        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.RESUME(currentUser.id));
+        if (cacheData) return cacheData;
+
         const candidate = await prisma.candidateProfile.findUnique({
             where: { userId: currentUser.id },
             select: { id: true }
@@ -138,10 +160,15 @@ class CandidateProfileService {
 
         const resumePath = await this.getResume(candidate.id);
 
+        redisClient.set(RedisKey.USER.CANDIDATE.RESUME(currentUser.id), resumePath, 'EX', 7200);
+        
         return resumePath;
     }
 
     public async viewResumeForRecruiter(currentUser: UserPayLoad, candidateId: number, companyId: number) {
+        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.RESUME(candidateId));
+        if (cacheData) return cacheData;
+
         const company = await prisma.company.findUnique({
             where: { id: companyId, userId: currentUser.id },
             select: { id: true }
@@ -156,6 +183,8 @@ class CandidateProfileService {
 
         const resumePath = await this.getResume(candidateId);
 
+        redisClient.set(RedisKey.USER.CANDIDATE.RESUME(candidateId), resumePath, 'EX', 7200);
+        
         return resumePath;
     }
 }
