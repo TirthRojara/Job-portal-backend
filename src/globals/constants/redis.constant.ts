@@ -14,7 +14,6 @@ export const RedisKey = {
     INDUSTRY: 'industry',
     PACKAGE: {
         ALL: 'packages:all',
-        // ACTIVE: 'packages:active',
         BY_ID: (id: number | string) => `packages:${id}`
     } as const,
 
@@ -28,5 +27,9 @@ export const RedisKey = {
         ID: (companyId: number | string) => `company:${companyId}`,
         ME: (userId: number | string) => `user:${userId}:company`,
         INDUSTRY: (companyId: number | string) => `company:${companyId}:industry`
+    },
+
+    JOB: {
+        SKILL: (jobId: number | string) => `job:${jobId}:skill`
     }
 } as const;

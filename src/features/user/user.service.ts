@@ -1,4 +1,4 @@
-import { AuthType, User } from '@prisma/client';
+import { AuthType, RecruiterPackageStatus, User } from '@prisma/client';
 import {
     BadRequestException,
     CustomErrorException,
@@ -58,6 +58,16 @@ class UserService {
             create: { name, email, password: hashPassword, role, authType: AuthType.EMAIL },
             update: {}
         });
+
+        if (role === 'RECRUITER') {
+            await prisma.recruiterPackage.create({
+                data: {
+                    status: RecruiterPackageStatus.ACTIVE,
+                    userId: newUser.id,
+                    packageId: 4 // free package
+                }
+            });
+        }
 
         return newUser;
     }
@@ -149,10 +159,10 @@ class UserService {
     public async getUserData(currentUser: UserPayLoad) {
         const user = await prisma.user.findUnique({
             where: { id: currentUser.id },
-            select: { id: true, email: true, name: true, role: true, authType: true}
+            select: { id: true, email: true, name: true, role: true, authType: true }
         });
 
-        return user
+        return user;
     }
 }
 
@@ -206,6 +216,17 @@ class UserOAuthService {
                     ProviderAuthId
                 }
             });
+
+            // check is this working or not !!!!!!!!!!!!!!!!!!!!
+            if (role === 'RECRUITER') {
+                await prisma.recruiterPackage.create({
+                    data: {
+                        status: RecruiterPackageStatus.ACTIVE,
+                        userId: newUser.id,
+                        packageId: 4 // free package
+                    }
+                });
+            }
 
             return newUser;
         }

@@ -65,6 +65,7 @@ export async function SubscriptionMiddleware(req: Request, res: Response, next: 
     //   });
     // }
 
+    // console.log(activePackage)
     req.recruiterPackage = activePackage;
     next();
   } catch (error) {
