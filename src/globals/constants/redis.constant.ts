@@ -11,9 +11,22 @@ export const RedisKey = {
     } as const,
 
     SKILLS: 'skills',
+    INDUSTRY: 'industry',
     PACKAGE: {
         ALL: 'packages:all',
         // ACTIVE: 'packages:active',
         BY_ID: (id: number | string) => `packages:${id}`
-    } as const
+    } as const,
+
+    CHAT: {
+        //  #### redis is remaining in chat ####
+        LIST: (id: number | string, page: number) => `user:${id}:chatList:${page}`,
+        CHAT: (chatRoomId: number | string) => `chatRoom:${chatRoomId}`
+    } as const,
+
+    COMPANY: {
+        ID: (companyId: number | string) => `company:${companyId}`,
+        ME: (userId: number | string) => `user:${userId}:company`,
+        INDUSTRY: (companyId: number | string) => `company:${companyId}:industry`
+    }
 } as const;

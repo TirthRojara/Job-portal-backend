@@ -4,146 +4,178 @@ import { Company, Prisma } from '@prisma/client';
 import { getTeamSizeLabel } from '~/globals/helpers/getTeamSizeLabel.helper';
 import { NotFountException } from '~/globals/cores/error.cores';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
+import { redisClient } from '~/globals/cores/redis/redis.client';
+import { RedisKey } from '~/globals/constants/redis.constant';
 
 class CompanyService {
-  public async create(requestBody: ICompanyCreateUpdate, userId: number): Promise<Company> {
-    const { totalEmployees, establishedDate, ...rest } = requestBody;
+    public async create(requestBody: ICompanyCreateUpdate, userId: number): Promise<Company> {
+        const { totalEmployees, establishedDate, ...rest } = requestBody;
 
-    const company = await prisma.company.create({
-      data: {
-        ...rest,
-        establishedDate: new Date(establishedDate),
-        userId,
-        totalEmployees,
-        teamSizeLabel: getTeamSizeLabel(totalEmployees)
-      }
-    });
+        const company = await prisma.company.create({
+            data: {
+                ...rest,
+                establishedDate: new Date(establishedDate),
+                userId,
+                totalEmployees,
+                teamSizeLabel: getTeamSizeLabel(totalEmployees)
+            }
+        });
 
-    return company;
-  }
+        await redisClient.del(RedisKey.COMPANY.ME(userId));
 
-  // public async readAll(): Promise<Company[]> {
-  //   const companies = await prisma.company.findMany();
-  //   return companies;
-  // }
+        return company;
+    }
 
-  public async readAllPagination({ page, limit, filter }: { page: number; limit: number; filter: string }) {
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter,
-      filterFields: ['name', 'description'],
-      entity: 'company'
-    });
+    // public async readAll(): Promise<Company[]> {
+    //   const companies = await prisma.company.findMany();
+    //   return companies;
+    // }
 
-    return { companies: data, totalCount, totalPages };
-  }
+    public async readAllPagination({ page, limit, filter }: { page: number; limit: number; filter: string }) {
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter,
+            filterFields: ['name', 'description'],
+            entity: 'company'
+        });
 
-  public async readAllIsApproved(
-    { page, limit, filter }: { page: number; limit: number; filter: string },
-    isApproved: boolean
-  ) {
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter,
-      filterFields: ['name', 'description'],
-      entity: 'company',
-      additionCondition: { isApproved }
-    });
+        return { companies: data, totalCount, totalPages };
+    }
 
-    return { companies: data, totalCount, totalPages };
-  }
+    public async readAllIsApproved(
+        { page, limit, filter }: { page: number; limit: number; filter: string },
+        isApproved: boolean
+    ) {
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter,
+            filterFields: ['name', 'description'],
+            entity: 'company',
+            additionCondition: { isApproved }
+        });
 
-  public async readMyCompanies(
-    { page, limit, filter }: { page: number; limit: number; filter: string },
-    currentUser: UserPayLoad
-  ) {
-    // const companies = await prisma.company.findMany({
-    //   where: {
-    //     userId: currentUser.id
-    //   }
-    // });
+        return { companies: data, totalCount, totalPages };
+    }
 
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter,
-      filterFields: ['name', 'description'],
-      entity: 'company',
-      additionCondition: { userId: currentUser.id }
-    });
+    public async readMyCompanies(
+        { page, limit, filter }: { page: number; limit: number; filter: string },
+        currentUser: UserPayLoad
+    ) {
+        // const companies = await prisma.company.findMany({
+        //   where: {
+        //     userId: currentUser.id
+        //   }
+        // });
 
-    return { companies: data, totalCount, totalPages };
-  }
+        const cacheData = await redisClient.get(RedisKey.COMPANY.ME(currentUser.id));
+        if (cacheData) return JSON.parse(cacheData);
 
-  public async readOne(id: number): Promise<Company> {
-    const company = await prisma.company.findUnique({
-      where: { id }
-    });
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter,
+            filterFields: ['name', 'description'],
+            entity: 'company',
+            additionCondition: { userId: currentUser.id }
+        });
 
-    if (!company) throw new NotFountException(`Can't find company with id ${id}`);
+        redisClient
+            .set(
+                RedisKey.COMPANY.ME(currentUser.id),
+                JSON.stringify({ companies: data, totalCount, totalPages }),
+                'EX',
+                7200
+            )
+            .catch((err) => console.error('Redis set failed', err));
 
-    return company;
-  }
+        return { companies: data, totalCount, totalPages };
+    }
 
-  public async findOne(companyId: number, userId: number) {
-    const company = await prisma.company.findFirst({
-      where: {
-        userId,
-        id: companyId
-      }
-    });
+    public async readOne(id: number): Promise<Company> {
+        const cacheData = await redisClient.get(RedisKey.COMPANY.ID(id));
+        if (cacheData) return JSON.parse(cacheData);
 
-    if (!company) throw new NotFountException(`Can't find company with id ${companyId} for user ${userId}`);
+        const company = await prisma.company.findUnique({
+            where: { id }
+        });
 
-    return company;
-  }
+        if (!company) throw new NotFountException(`Can't find company with id ${id}`);
 
-  public async update(id: number, requestBody: ICompanyCreateUpdate, currentUser: UserPayLoad) {
-    const { totalEmployees, establishedDate, ...rest } = requestBody;
+        redisClient
+            .set(RedisKey.COMPANY.ID(id), JSON.stringify(company), 'EX', 43200)
+            .catch((err) => console.error('Redis set failed', err)); //  12H
 
-    await this.findOne(id, currentUser.id);
+        return company;
+    }
 
-    const company = await prisma.company.update({
-      where: { id, userId: currentUser.id },
-      data: {
-        ...rest,
-        establishedDate: establishedDate ? new Date(establishedDate) : undefined,
-        totalEmployees,
-        teamSizeLabel: totalEmployees ? getTeamSizeLabel(totalEmployees) : undefined
-      }
-    });
+    // private method
+    public async findOne(companyId: number, userId: number) {
+        const company = await prisma.company.findFirst({
+            where: {
+                userId,
+                id: companyId
+            }
+        });
 
-    return company;
-  }
+        if (!company) throw new NotFountException(`Can't find company with id ${companyId} for user ${userId}`);
 
-  public async approved(id: number, isApproved: boolean) {
-    await this.readOne(id);
+        return company;
+    }
 
-    const company = await prisma.company.update({
-      where: { id },
-      data: { isApproved }
-    });
+    public async update(id: number, requestBody: ICompanyCreateUpdate, currentUser: UserPayLoad) {
+        const { totalEmployees, establishedDate, ...rest } = requestBody;
 
-    return company;
-  }
+        await this.findOne(id, currentUser.id);
 
-  public async remove(id: number, currentUser: UserPayLoad): Promise<void> {
-    await this.findOne(id, currentUser.id);
+        const company = await prisma.company.update({
+            where: { id, userId: currentUser.id },
+            data: {
+                ...rest,
+                establishedDate: establishedDate ? new Date(establishedDate) : undefined,
+                totalEmployees,
+                teamSizeLabel: totalEmployees ? getTeamSizeLabel(totalEmployees) : undefined
+            }
+        });
 
-    await prisma.company.delete({
-      where: { id, userId: currentUser.id }
-    });
-  }
+        await redisClient.del(RedisKey.COMPANY.ME(currentUser.id));
+        await redisClient.del(RedisKey.COMPANY.ID(company.id));
 
-  public async removeByAdmin(id: number): Promise<void> {
-    await this.readOne(id);
+        return company;
+    }
 
-    await prisma.company.delete({
-      where: { id }
-    });
-  }
+    public async approved(id: number, isApproved: boolean) {
+        await this.readOne(id);
+
+        const company = await prisma.company.update({
+            where: { id },
+            data: { isApproved }
+        });
+
+        return company;
+    }
+
+    public async remove(id: number, currentUser: UserPayLoad): Promise<void> {
+        await this.findOne(id, currentUser.id);
+
+        await prisma.company.delete({
+            where: { id, userId: currentUser.id }
+        });
+
+        await redisClient.del(RedisKey.COMPANY.ME(currentUser.id));
+    }
+
+    public async removeByAdmin(id: number): Promise<void> {
+        await this.readOne(id);
+
+        const company = await prisma.company.delete({
+            where: { id }
+        });
+
+        await redisClient.del(RedisKey.COMPANY.ID(company.id));
+        await redisClient.del(RedisKey.COMPANY.ME(company.userId))
+    }
 }
 
 export const companyService: CompanyService = new CompanyService();

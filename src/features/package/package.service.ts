@@ -30,7 +30,9 @@ class PackageService {
             where: { isActive: true }
         });
 
-        redisClient.set(`${RedisKey.PACKAGE.ALL}`, JSON.stringify(pkg), 'EX', 86400);
+        redisClient
+            .set(`${RedisKey.PACKAGE.ALL}`, JSON.stringify(pkg), 'EX', 86400)
+            .catch((err) => console.error('Redis set failed', err));
 
         return pkg;
     }
@@ -57,7 +59,9 @@ class PackageService {
 
         if (!pkg) throw new NotFountException(`Package: ${id} not found`);
 
-        redisClient.set(RedisKey.PACKAGE.BY_ID(id), JSON.stringify(pkg), 'EX', 86400);
+        redisClient
+            .set(RedisKey.PACKAGE.BY_ID(id), JSON.stringify(pkg), 'EX', 86400)
+            .catch((err) => console.error('Redis set failed', err));
 
         return pkg;
     }

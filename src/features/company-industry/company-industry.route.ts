@@ -9,23 +9,23 @@ const companyIndustryRoute = express.Router();
 companyIndustryRoute.get('/industryList', verifyUser, asyncWrapper(companyIndustryController.getAllIndustries));
 
 companyIndustryRoute.post(
-  '/me/:companyId/:industryId',
-  verifyUser,
-  allowAccess('RECRUITER'),
-  asyncWrapper(companyIndustryController.add)
+    '/me/:companyId/:industryId',
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(companyIndustryController.add)
 );
 
 companyIndustryRoute.get(
-  '/industry/:companyId',
-  verifyUser,
-  asyncWrapper(companyIndustryController.getCompanyIndustry)
+    '/industry/:companyId',
+    verifyUser,
+    asyncWrapper(companyIndustryController.getCompanyIndustry)
 );
 
 companyIndustryRoute.delete(
-  '/me/:companyId/:industryId',
-  verifyUser,
-  allowAccess('RECRUITER'),
-  asyncWrapper(companyIndustryController.remove)
+    '/me/:companyId/:industryId',
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(companyIndustryController.remove)
 );
 
 export default companyIndustryRoute;

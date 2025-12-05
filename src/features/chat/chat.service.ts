@@ -1,10 +1,15 @@
 import { CandidateProfile, Role } from '@prisma/client';
+import { RedisKey } from '~/globals/constants/redis.constant';
 import { BadRequestException, ForbiddenException, UnauthorizedException } from '~/globals/cores/error.cores';
+import { redisClient } from '~/globals/cores/redis/redis.client';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import prisma from '~/prisma';
 
 class ChatService {
     public async getChatListForCandidate({ page, limit }: { page: number; limit: number }, currentUser: UserPayLoad) {
+        // const cacheData = await redisClient.get(RedisKey.CHAT.LIST(currentUser.id, page));
+        // if (cacheData) return JSON.parse(cacheData);
+
         if (currentUser.role !== Role.CANDIDATE)
             throw new ForbiddenException('you must be a candidate to perform this action');
 
@@ -34,6 +39,10 @@ class ChatService {
 
         console.log('chat data :', data);
 
+        // redisClient
+        //     .set(RedisKey.CHAT.LIST(currentUser.id, page), JSON.stringify({ chat: data, totalCount, totalPages }), 'EX', 7200)
+        //     .catch((err) => console.error('Redis set failed', err));
+
         return { chat: data, totalCount, totalPages };
     }
 
@@ -42,6 +51,9 @@ class ChatService {
         currentUser: UserPayLoad,
         companyId: number
     ) {
+        // const cacheData = await redisClient.get(RedisKey.CHAT.LIST(currentUser.id, page));
+        // if (cacheData) return JSON.parse(cacheData);
+
         const isUserHasCompany = await prisma.company.findUnique({
             where: { id: companyId, userId: currentUser.id },
             select: { id: true }
@@ -66,6 +78,10 @@ class ChatService {
             }
         });
 
+        // redisClient
+        //     .set(RedisKey.CHAT.LIST(currentUser.id, page), JSON.stringify({ chat: data, totalCount, totalPages }), 'EX', 7200)
+        //     .catch((err) => console.error('Redis set failed', err));
+
         return { chat: data, totalCount, totalPages };
     }
 
@@ -81,6 +97,8 @@ class ChatService {
             where: { candidateProfileId: candidateProfile.id, chatRoomId }
         });
 
+        // #### Add redis ####
+
         return chat;
     }
 
@@ -95,6 +113,8 @@ class ChatService {
         const chat = await prisma.chat.findUnique({
             where: { companyId, chatRoomId }
         });
+
+        // #### Add redis ####
 
         return chat;
     }
