@@ -19,6 +19,7 @@ class CandidateProfileService {
         const { birthDate, openToWork, ...rest } = requestBody;
 
         const cvURL = file[0].filename;
+        //  const cvURL = file && file.length > 0 ? file[0].filename : undefined;
 
         const candidateProfile = await prisma.candidateProfile.create({
             data: {

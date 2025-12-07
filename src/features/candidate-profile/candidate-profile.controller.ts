@@ -4,6 +4,9 @@ import HTTP_STATUS from '~/globals/constants/http.constant';
 
 class CandidateProfileController {
     public async create(req: Request, res: Response, next: NextFunction) {
+
+        console.log('req.files =', req.files);
+
         const candidateProfile = await candidateProfileService.create(
             req.body,
             req.currentUser,

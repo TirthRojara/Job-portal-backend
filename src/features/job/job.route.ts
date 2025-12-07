@@ -21,6 +21,7 @@ jobRoute.post(
 jobRoute.get(
   '/readAll',
   verifyUser,
+  allowAccess('ADMIN', 'CANDIDATE'),
   asyncWrapper(jobController.readAll)
 );
 
@@ -51,5 +52,15 @@ jobRoute.delete(
   allowAccess('RECRUITER'),
   asyncWrapper(jobController.remove)
 );
+
+jobRoute.patch(
+  '/me/status/:id/:companyId',
+  verifyUser,
+  allowAccess('RECRUITER'),
+  validateSchema(jobUpdateStatusSchema),
+  asyncWrapper(jobController.updateStatus)
+);
+
+
 
 export default jobRoute;

@@ -6,246 +6,280 @@ import { Job, JobStatus } from '@prisma/client';
 import { CustomError, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { jobRoleService } from '../job-role/job-role.service';
 import { PassThrough } from 'stream';
+import { redisClient } from '~/globals/cores/redis/redis.client';
+import { RedisKey } from '~/globals/constants/redis.constant';
+import chalk from 'chalk';
 
 class JobService {
-  public async create(
-    requestBody: IJob,
-    currentUser: UserPayLoad,
-    recruiterPackage: RecruiterPackagePayload,
-    companyId: number
-  ) {
-    const { applicationDeadline, jobRoleId, ...rest } = requestBody;
+    public async create(
+        requestBody: IJob,
+        currentUser: UserPayLoad,
+        recruiterPackage: RecruiterPackagePayload,
+        companyId: number
+    ) {
+        const { applicationDeadline, jobRoleId, ...rest } = requestBody;
 
-    await companyService.findOne(companyId, currentUser.id);
-    await jobRoleService.findOne(jobRoleId);
+        await companyService.findOne(companyId, currentUser.id);
+        await jobRoleService.findOne(jobRoleId);
 
-    // get active package of the recruiter`
+        // get active package of the recruiter`
 
-    // count how many job post by recruiter
-    let checkLimit = await prisma.checkLimitForRecruiter.findUnique({
-      where: { recruiterId: currentUser.id }
-    });
+        // count how many job post by recruiter
+        let checkLimit = await prisma.checkLimitForRecruiter.findUnique({
+            where: { recruiterId: currentUser.id }
+        });
 
-    if (!checkLimit) {
-      checkLimit = await prisma.checkLimitForRecruiter.create({
-        data: {
-          recruiterId: currentUser.id,
-          jobCount: 0
+        if (!checkLimit) {
+            checkLimit = await prisma.checkLimitForRecruiter.create({
+                data: {
+                    recruiterId: currentUser.id,
+                    jobCount: 0
+                }
+            });
         }
-      });
+
+        if (checkLimit.jobCount >= recruiterPackage.package.jobPostLimit) {
+            throw new ForbiddenException(`You have reached your job post limit. Please upgrade your package.`);
+        }
+
+        const job = await prisma.job.create({
+            data: {
+                ...rest,
+                applicationDeadline: new Date(applicationDeadline),
+                jobRoleId,
+                companyId,
+                postById: currentUser.id
+            }
+        });
+
+        await prisma.checkLimitForRecruiter.update({
+            where: { recruiterId: currentUser.id },
+            data: { jobCount: { increment: 1 } }
+        });
+
+        await redisClient.del(RedisKey.JOB.ME(currentUser.id));
+
+        return job;
     }
 
-    if (checkLimit.jobCount >= recruiterPackage.package.jobPostLimit) {
-      throw new ForbiddenException(`You have reached your job post limit. Please upgrade your package.`);
-    }
-
-    const job = await prisma.job.create({
-      data: {
-        ...rest,
-        applicationDeadline: new Date(applicationDeadline),
-        jobRoleId,
-        companyId,
-        postById: currentUser.id
-      }
-    });
-
-    await prisma.checkLimitForRecruiter.update({
-      where: { recruiterId: currentUser.id },
-      data: { jobCount: { increment: 1 } },
-    });
-
-    return job;
-  }
-
-  public async readAll({
-    page,
-    limit,
-    filter,
-    salaryMin,
-    JobStatus
-  }: {
-    page: number;
-    limit: number;
-    filter: string;
-    salaryMin: number;
-    JobStatus: string | null;
-  }) {
-    const additionConditionQuery: any = {
-      salaryMin: { gte: salaryMin },
-      isDeleted: false
-    };
-
-    if (JobStatus && JobStatus.trim() !== '') {
-      additionConditionQuery.status = JobStatus; // only add valid status filter
-    }
-
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter,
-      filterFields: ['title', 'description'],
-      entity: 'job',
-      // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
-      additionCondition: additionConditionQuery,
-      orderCondition: { postedAt: 'desc' }
-    });
-
-    return { job: data, totalCount, totalPages };
-  }
-
-  public async readAllForRecruiter(
-    {
-      page,
-      limit,
-      filter,
-      salaryMin
+    public async readAll({
+        page,
+        limit,
+        filter,
+        salaryMin,
+        JobStatus
     }: {
-      page: number;
-      limit: number;
-      filter: string;
-      salaryMin: number;
-    },
-    currentUser: UserPayLoad
-  ) {
-    const { data, totalCount, totalPages } = await getPaginationAndFilter({
-      page,
-      limit,
-      filter,
-      filterFields: ['title', 'description'],
-      entity: 'job',
-      additionCondition: { salaryMin: { gte: salaryMin }, postById: currentUser.id },
-      orderCondition: { postedAt: 'desc' }
-    });
+        page: number;
+        limit: number;
+        filter: string;
+        salaryMin: number;
+        JobStatus: string | null;
+    }) {
+        const additionConditionQuery: any = {
+            salaryMin: { gte: salaryMin },
+            isDeleted: false
+        };
 
-    return { job: data, totalCount, totalPages };
-  }
+        if (JobStatus && JobStatus.trim() !== '') {
+            additionConditionQuery.status = JobStatus; // only add valid status filter
+        }
 
-  // private serializeData(data: any) {
-  //   return {
-  //     ...data,
-  //     companyName: data?.company?.name,
-  //     postByName: data?.postBy?.name,
-  //     company: undefined,
-  //     postBy: undefined
-  //   };
-  // }
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter,
+            filterFields: ['title', 'description'],
+            entity: 'job',
+            // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
+            additionCondition: additionConditionQuery,
+            orderCondition: { postedAt: 'desc' }
+        });
 
-  // public async readOne(id: number): Promise<Job> {
-  //   const job = await prisma.job.findUnique({
-  //     where: { id },
-  //     include: {
-  //       company: true,
-  //       postBy: true,
-  //       jobRole: true
-  //     }
-  //   });
-
-  //   if (!job) throw new NotFountException(`Cannot find job: ${id}`);
-
-  //   const dataConfig = {
-  //     company: [
-  //       { newKey: 'companyName', property: 'name' },
-  //       { newKey: 'companyWebsiteUrl', property: 'websiteUrl' }
-  //     ],
-  //     postBy: [{ newKey: 'postByName', property: 'name' }],
-  //     jobRole: [{ newKey: 'jobRoleName', property: 'name' }]
-  //   };
-
-  //   return serializeData(job, dataConfig);
-  // }
-
-  public async readOne(id: number): Promise<Job> {
-    const job = await prisma.job.findUnique({
-      where: { id },
-      include: {
-        company: { select: { name: true } },
-        postBy: { select: { name: true } },
-        jobRole: { select: { name: true } }
-      }
-    });
-
-    if (!job) throw new NotFountException(`Can't find job with id: ${id}`);
-
-    return job;
-  }
-
-  public async findOne(id: number, companyId: number, userId: number): Promise<Job> {
-    const job = await prisma.job.findFirst({
-      where: { id, companyId, postById: userId }
-    });
-
-    if (!job) throw new NotFountException(`Can't find company with id: ${companyId} for user: ${userId}`);
-
-    return job;
-  }
-
-  public async findJobByUser(id: number, userId: number): Promise<Job> {
-    const job = await prisma.job.findFirst({
-      where: { id, postById: userId }
-    });
-
-    if (!job) throw new NotFountException(`Can't find job with id: ${id} for user: ${userId}`);
-
-    return job;
-  }
-
-  public async update(id: number, companyId: number, currentUser: UserPayLoad, requestBody: IJob): Promise<Job> {
-    const { applicationDeadline, ...rest } = requestBody;
-
-    await this.findOne(id, companyId, currentUser.id);
-
-    if (requestBody.jobRoleId !== undefined && requestBody.jobRoleId !== null) {
-      await jobRoleService.findOne(requestBody.jobRoleId);
+        return { job: data, totalCount, totalPages };
     }
 
-    const job = await prisma.job.update({
-      where: { id, companyId, postById: currentUser.id },
-      data: {
-        ...rest,
-        applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : undefined
-      }
-    });
+    public async readAllForRecruiter(
+        {
+            page,
+            limit,
+            filter,
+            salaryMin
+        }: {
+            page: number;
+            limit: number;
+            filter: string;
+            salaryMin: number;
+        },
+        currentUser: UserPayLoad
+    ) {
+        const cacheData = await redisClient.get(RedisKey.JOB.ME(currentUser.id));
+        if (cacheData) return JSON.parse(cacheData);
 
-    return job;
-  }
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page,
+            limit,
+            filter,
+            filterFields: ['title', 'description'],
+            entity: 'job',
+            additionCondition: { salaryMin: { gte: salaryMin }, postById: currentUser.id },
+            orderCondition: { postedAt: 'desc' }
+        });
 
-  public async updateStatus(id: number, companyId: number, currentUser: UserPayLoad, status: JobStatus): Promise<Job> {
-    await this.findOne(id, companyId, currentUser.id);
+        redisClient
+            .set(RedisKey.JOB.ME(currentUser.id), JSON.stringify({ job: data, totalCount, totalPages }), 'EX', 43200)
+            .catch((err) => console.error('Redis set failed', err));
 
-    const job = await prisma.job.update({
-      where: { id, companyId, postById: currentUser.id },
-      data: {
-        status
-      }
-    });
+        return { job: data, totalCount, totalPages };
+    }
 
-    return job;
-  }
+    // private serializeData(data: any) {
+    //   return {
+    //     ...data,
+    //     companyName: data?.company?.name,
+    //     postByName: data?.postBy?.name,
+    //     company: undefined,
+    //     postBy: undefined
+    //   };
+    // }
 
-  public async remove(id: number, companyId: number, currentUser: UserPayLoad): Promise<void> {
-    await this.findOne(id, companyId, currentUser.id);
+    // public async readOne(id: number): Promise<Job> {
+    //   const job = await prisma.job.findUnique({
+    //     where: { id },
+    //     include: {
+    //       company: true,
+    //       postBy: true,
+    //       jobRole: true
+    //     }
+    //   });
 
-    await prisma.job.update({
-      where: { id, companyId, postById: currentUser.id },
-      data: {
-        isDeleted: true
-      }
-    });
-  }
+    //   if (!job) throw new NotFountException(`Cannot find job: ${id}`);
 
-  public async findOneActive(jobId: number) {
-    const job = await prisma.job.findFirst({
-      where: {
-        id: jobId,
-        status: 'ACTIVE',
-        isDeleted: false
-      }
-    });
+    //   const dataConfig = {
+    //     company: [
+    //       { newKey: 'companyName', property: 'name' },
+    //       { newKey: 'companyWebsiteUrl', property: 'websiteUrl' }
+    //     ],
+    //     postBy: [{ newKey: 'postByName', property: 'name' }],
+    //     jobRole: [{ newKey: 'jobRoleName', property: 'name' }]
+    //   };
 
-    if (!job) throw new NotFountException(`This job is no longer active or exist`);
+    //   return serializeData(job, dataConfig);
+    // }
 
-    return job;
-  }
+    public async readOne(id: number): Promise<Job> {
+        const cacheData = await redisClient.get(RedisKey.JOB.ID(id));
+        if (cacheData) return JSON.parse(cacheData);
+
+        const job = await prisma.job.findUnique({
+            where: { id },
+            include: {
+                company: { select: { name: true } },
+                postBy: { select: { name: true } },
+                jobRole: { select: { name: true } }
+            }
+        });
+
+        if (!job) throw new NotFountException(`Can't find job with id: ${id}`);
+
+        redisClient
+            .set(RedisKey.JOB.ID(id), JSON.stringify(job), 'EX', 43200)
+            .catch((err) => console.error('Redis set failed', err));
+
+        return job;
+    }
+
+    // private method
+    public async findOne(id: number, companyId: number, userId: number): Promise<Job> {
+        const job = await prisma.job.findFirst({
+            where: { id, companyId, postById: userId }
+        });
+
+        if (!job) throw new NotFountException(`Can't find company with id: ${companyId} for user: ${userId}`);
+
+        return job;
+    }
+
+    public async findJobByUser(id: number, userId: number): Promise<Job> {
+        const job = await prisma.job.findFirst({
+            where: { id, postById: userId }
+        });
+
+        if (!job) throw new NotFountException(`Can't find job with id: ${id} for user: ${userId}`);
+
+        return job;
+    }
+
+    public async update(id: number, companyId: number, currentUser: UserPayLoad, requestBody: IJob): Promise<Job> {
+        const { applicationDeadline, ...rest } = requestBody;
+
+        await this.findOne(id, companyId, currentUser.id);
+
+        if (requestBody.jobRoleId !== undefined && requestBody.jobRoleId !== null) {
+            await jobRoleService.findOne(requestBody.jobRoleId);
+        }
+
+        const job = await prisma.job.update({
+            where: { id, companyId, postById: currentUser.id },
+            data: {
+                ...rest,
+                applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : undefined
+            }
+        });
+
+        await redisClient.del(RedisKey.JOB.ME(currentUser.id));
+        await redisClient.del(RedisKey.JOB.ID(job.id));
+
+        return job;
+    }
+
+    public async updateStatus(
+        id: number,
+        companyId: number,
+        currentUser: UserPayLoad,
+        status: JobStatus
+    ): Promise<Job> {
+        await this.findOne(id, companyId, currentUser.id);
+
+        const job = await prisma.job.update({
+            where: { id, companyId, postById: currentUser.id },
+            data: {
+                status
+            }
+        });
+
+        await redisClient.del(RedisKey.JOB.ME(currentUser.id));
+        await redisClient.del(RedisKey.JOB.ID(job.id));
+
+        return job;
+    }
+
+    public async remove(id: number, companyId: number, currentUser: UserPayLoad): Promise<void> {
+        await this.findOne(id, companyId, currentUser.id);
+
+        await prisma.job.update({
+            where: { id, companyId, postById: currentUser.id },
+            data: {
+                isDeleted: true
+            }
+        });
+
+        await redisClient.del(RedisKey.JOB.ME(currentUser.id));
+        await redisClient.del(RedisKey.JOB.ID(id));
+    }
+
+    public async findOneActive(jobId: number) {
+        const job = await prisma.job.findFirst({
+            where: {
+                id: jobId,
+                status: 'ACTIVE',
+                isDeleted: false
+            }
+        });
+
+        if (!job) throw new NotFountException(`This job is no longer active or exist`);
+
+        return job;
+    }
 }
 
 export const jobService: JobService = new JobService();

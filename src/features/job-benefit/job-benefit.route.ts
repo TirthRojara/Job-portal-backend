@@ -8,21 +8,23 @@ import { jobBenefitSchema } from './job-benefit.schema';
 
 const jobBenefitRoute = express.Router();
 
+jobBenefitRoute.get('/list', verifyUser, asyncWrapper(jobBenefitController.getAllBenefitList));
+
 jobBenefitRoute.post(
-  '/me/:jobId',
-  verifyUser,
-  allowAccess('RECRUITER'),
-  validateSchema(jobBenefitSchema),
-  asyncWrapper(jobBenefitController.create)
+    '/me/:jobId',
+    verifyUser,
+    allowAccess('RECRUITER'),
+    validateSchema(jobBenefitSchema),
+    asyncWrapper(jobBenefitController.create)
 );
 
 jobBenefitRoute.get('/:jobId', verifyUser, asyncWrapper(jobBenefitController.read));
 
 jobBenefitRoute.delete(
-  '/me/:jobId/:benefitName',
-  verifyUser,
-  allowAccess('RECRUITER'),
-  asyncWrapper(jobBenefitController.remove)
+    '/me/:jobId/:benefitName',
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(jobBenefitController.remove)
 );
 
 export default jobBenefitRoute;

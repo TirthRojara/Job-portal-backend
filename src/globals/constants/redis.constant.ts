@@ -30,6 +30,21 @@ export const RedisKey = {
     },
 
     JOB: {
-        SKILL: (jobId: number | string) => `job:${jobId}:skill`
+        SKILL: (jobId: number | string) => `job:${jobId}:skill`,
+        BENEFIT: (jobId: number | string) => `job:${jobId}:benefit`,
+        ME: (userId: number | string) => `user:${userId}:job`,
+        ID: (jobId: number | string) => `job:${jobId}`
+    },
+    JOB_ROLL: 'jobRoll',
+    JOB_BENEFIT: 'jobBenefit',
+
+    APPLY: {
+        READ_MY_APPLICATION_CANDIDATE: (userId: number | string) => `user:${userId}:candidate:apply`,
+        READ_MY_APPLICATION_CANDIDATE_PAGINATION: (userId: number | string) =>
+            `user:${userId}:candidate:apply:pagination`,
+        READ_MY_APPLICATION_RECRUITER: (jobId: number, companyId: number) =>
+            `recruiter:apply:company:${companyId}:jobId:${jobId}`,
+        READ_MY_APPLICATION_RECRUITER_PAGINATION: (jobId: number, companyId: number) =>
+            `recruiter:apply:company:${companyId}:jobId:${jobId}:pagination`
     }
 } as const;
