@@ -14,6 +14,8 @@ import { OTPFor, RecruiterPackageStatus, User } from '@prisma/client';
 import { generateOTP, OTP_DETAILS } from './auth.utils';
 import { log } from '~/globals/helpers/log.helper';
 import { IRefreshToken } from './auth.interface';
+import { now } from 'mongoose';
+import { redisClient } from '~/globals/cores/redis/redis.client';
 
 class AuthService {
     // public async signUp(requestBody: any) {
@@ -216,6 +218,32 @@ class AuthService {
             now.setDate(now.getDate() + 30);
         }
         return now;
+    }
+
+    public async removeExpireToken() {
+        const lockKey = 'lock:cron:expire-token';
+        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 240, 'NX'); // 4min TTL
+        if (!lockAcquired) {
+            console.log('Cron skipped expire token - another instance running');
+            return;
+        }
+
+        try {
+            const now = new Date();
+
+            const result = await prisma.refreshToken.deleteMany({
+                where: {
+                    expiresAt: { lt: now }
+                }
+            });
+
+            console.log(`[cron] deleted ${result.count} expired refresh tokens`);
+        } catch (error) {
+            console.error(`❌ Cron sync failed: ${error}`);
+        } finally {
+            await redisClient.del(lockKey);
+            console.log('lock relese: for expire token');
+        }
     }
 }
 
