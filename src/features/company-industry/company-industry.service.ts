@@ -49,7 +49,7 @@ class CompanyIndustryService {
         const cacheData = await redisClient.get(RedisKey.COMPANY.INDUSTRY(companyId));
         if (cacheData) return JSON.parse(cacheData);
 
-        await companyService.readOne(companyId);
+        await companyService.readOneWithoutUserId(companyId);
         const companyIndustry = await prisma.companyIndustry.findMany({
             where: { companyId }
         });

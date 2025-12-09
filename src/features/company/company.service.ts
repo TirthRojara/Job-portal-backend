@@ -2,10 +2,12 @@ import prisma from '~/prisma';
 import { ICompanyCreateUpdate } from './company.interface';
 import { Company, Prisma } from '@prisma/client';
 import { getTeamSizeLabel } from '~/globals/helpers/getTeamSizeLabel.helper';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { BadRequestException, NotFountException } from '~/globals/cores/error.cores';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
+import { count } from 'console';
+import { companyRedis } from './company.redis';
 
 class CompanyService {
     public async create(requestBody: ICompanyCreateUpdate, userId: number): Promise<Company> {
@@ -93,12 +95,16 @@ class CompanyService {
         return { companies: data, totalCount, totalPages };
     }
 
-    public async readOne(id: number): Promise<Company> {
+    public async readOne(id: number, currentUser: UserPayLoad): Promise<Omit<Company, 'views'>> {
+        // incr views
+        companyRedis.INCR_views(currentUser.id, id);
+
         const cacheData = await redisClient.get(RedisKey.COMPANY.ID(id));
         if (cacheData) return JSON.parse(cacheData);
 
         const company = await prisma.company.findUnique({
-            where: { id }
+            where: { id },
+            omit: { views: true }
         });
 
         if (!company) throw new NotFountException(`Can't find company with id ${id}`);
@@ -145,8 +151,20 @@ class CompanyService {
         return company;
     }
 
+    //private
+    public async readOneWithoutUserId(companyId: number) {
+        const company = await prisma.company.findUnique({
+            where: { id: companyId },
+            omit: { views: true }
+        });
+
+        if (!company) throw new NotFountException(`Can't find company with id ${companyId}`);
+
+        return company;
+    }
+
     public async approved(id: number, isApproved: boolean) {
-        await this.readOne(id);
+        await this.readOneWithoutUserId(id);
 
         const company = await prisma.company.update({
             where: { id },
@@ -167,14 +185,127 @@ class CompanyService {
     }
 
     public async removeByAdmin(id: number): Promise<void> {
-        await this.readOne(id);
+        await this.readOneWithoutUserId(id);
 
         const company = await prisma.company.delete({
             where: { id }
         });
 
         await redisClient.del(RedisKey.COMPANY.ID(company.id));
-        await redisClient.del(RedisKey.COMPANY.ME(company.userId))
+        await redisClient.del(RedisKey.COMPANY.ME(company.userId));
+    }
+
+    public async getCompanyView(companyId: number, currentUser: UserPayLoad) {
+        await this.findOne(companyId, currentUser.id);
+
+        const redisCount = await redisClient.get(RedisKey.COMPANY.VIEWS_COUNT(companyId));
+
+        const dbCount = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: { id: true, views: true }
+        });
+
+        if (!dbCount) throw new BadRequestException('Invalid request');
+
+        const totalCount = Number(redisCount) + dbCount!.views!;
+
+        return { companyId: dbCount.id, totalViews: totalCount };
+    }
+
+    public async syncViewInDB() {
+        // const keys = await redisClient.keys(`company:*:views:count`);
+
+        // for (const key of keys) {
+        //     const companyId = key.split(':')[1]; // Extract from "company:123:views:count"
+
+        //     let isValue = await redisClient.get(RedisKey.COMPANY.VIEWS_COUNT(companyId));
+
+        //     if (isValue) {
+        //         const count = Number(isValue);
+
+        //         const views = await prisma.company.update({
+        //             where: { id: Number(companyId) },
+        //             data: { views: { increment: count } }
+        //         });
+        //     }
+
+        //     redisClient.del(RedisKey.COMPANY.VIEWS_COUNT(companyId))
+        // }
+
+        // 1. Distributed lock (prevents duplicate runs across PM2/Docker instances)
+        const lockKey = 'lock:cron:views-sync';
+        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 300, 'NX'); // 5min TTL
+        if (!lockAcquired) {
+            console.log('Cron skipped - another instance running');
+            return;
+        }
+
+        const keys: string[] = [];
+        let cursor = '0';
+
+        try {
+            // 2. SCAN all keys (non-blocking)
+            // do {
+            //     const result = await redisClient.scan(cursor, {
+            //         MATCH: 'company:*:views:count',
+            //         COUNT: 100
+            //     });
+            //     cursor = result.cursor;
+            //     keys.push(...result.keys);
+            // } while (cursor !== '0');
+
+            do {
+                const [nextCursor, elements] = await redisClient.scan(
+                    cursor,
+                    'MATCH',
+                    'company:*:views:count',
+                    'COUNT',
+                    '100'
+                );
+
+                cursor = nextCursor;
+                keys.push(...elements);
+            } while (cursor !== '0');
+
+            if (keys.length === 0) return;
+
+            console.log(`Found ${keys.length} companies to sync`);
+
+            // 3. Build batch updates
+            const updates: any[] = [];
+            for (const key of keys) {
+                const companyId = key.split(':')[1];
+                const count = Number((await redisClient.get(key)) || '0');
+
+                if (count > 0) {
+                    updates.push(
+                        prisma.company.update({
+                            where: { id: Number(companyId) },
+                            data: { views: { increment: count } }
+                        })
+                    );
+                }
+            }
+
+            if (updates.length === 0) return;
+
+            // 4. Atomic DB update FIRST
+            await prisma.$transaction(updates);
+            console.log(`✅ Synced ${updates.length} companies to DB`);
+
+            // 5. Pipeline DEL keys ONLY AFTER DB success
+            const pipeline = redisClient.multi();
+            keys.forEach((key) => pipeline.del(key));
+            await pipeline.exec();
+            console.log(`🗑️  Deleted ${keys.length} Redis keys`);
+        } catch (error) {
+            console.error(`❌ Cron sync failed: ${error}`);
+            // Keys REMAIN → next cron retries! ✅
+        } finally {
+            // 6. Always release lock
+            await redisClient.del(lockKey);
+            console.log('lock relese: syncViewInDb for company');
+        }
     }
 }
 

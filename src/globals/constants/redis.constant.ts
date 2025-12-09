@@ -26,7 +26,9 @@ export const RedisKey = {
     COMPANY: {
         ID: (companyId: number | string) => `company:${companyId}`,
         ME: (userId: number | string) => `user:${userId}:company`,
-        INDUSTRY: (companyId: number | string) => `company:${companyId}:industry`
+        INDUSTRY: (companyId: number | string) => `company:${companyId}:industry`,
+        VIEWS_SET: (companyId: number) => `company:${companyId}:views:set`,
+        VIEWS_COUNT: (companyId: number | string) => `company:${companyId}:views:count`
     },
 
     JOB: {

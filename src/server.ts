@@ -12,6 +12,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import http from 'http';
 import { initSocket } from './socketManager';
 import path from 'path';
+import { cronHandler } from './globals/cron-jobs/index.cron';
 
 class Server {
     private app: Application;
@@ -39,6 +40,7 @@ class Server {
         this.setUpSocket();
         this.setUpGlobalError();
         this.listenServer();
+        this.cronjobs();
     }
 
     private setUpMiddleware(): void {
@@ -99,6 +101,10 @@ class Server {
                 console.log('Client disconnected, socket id:', socket.id);
             });
         });
+    }
+
+    private cronjobs() {
+        cronHandler()
     }
 
     // private listenServer() {

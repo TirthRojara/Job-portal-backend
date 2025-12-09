@@ -1,3 +1,4 @@
+import { Company } from '@prisma/client';
 import { Resend } from 'resend';
 import { BadRequestException } from '~/globals/cores/error.cores';
 import prisma from '~/prisma';
@@ -28,33 +29,12 @@ class TestService {
 
         // console.log(response)
 
-        const apply = await prisma.apply.findUnique({
-            where: {
-                id: 1
-            },
-            select: {
-                id: true,
-                applyDate: true, 
-                status: true,
-                companyId: true,
-                candidateProfileId: true,
-                jobId: true,
-                candidateProfile: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                        gender: true,
-                        phone: true,
-                        cv: true,
-                        birthDate: true,
-                        address: true,
-                        userId: true
-                    }
-                }
-            }
+        const company = await prisma.company.findUnique({
+            where: { id: 26 },
+            omit: { views: true }
         });
 
-        return apply;
+        return company;
     }
 }
 

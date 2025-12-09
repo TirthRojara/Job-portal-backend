@@ -88,7 +88,7 @@ class CompanyController {
   }
 
   public async readOne(req: Request, res: Response) {
-    const company = await companyService.readOne(parseInt(req.params.id));
+    const company = await companyService.readOne(parseInt(req.params.id), req.currentUser);
 
     return res.status(HTTP_STATUS.OK).json({
       message: 'Get single company detail successfully',
@@ -127,6 +127,15 @@ class CompanyController {
 
     return res.status(HTTP_STATUS.OK).json({
       message: `Delete company with id ${req.params.id} successfully`
+    });
+  }
+
+  public async getCompanyView(req: Request, res: Response) {
+    const view = await companyService.getCompanyView(Number(req.params.companyId), req.currentUser)
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: `Get company views successfully`,
+      data: view
     });
   }
 }
