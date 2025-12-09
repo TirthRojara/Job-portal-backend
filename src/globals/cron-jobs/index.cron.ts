@@ -8,7 +8,7 @@ export async function cronHandler() {
     //     console.log('cronHandle')
     // })
 
-    cron.schedule('*/5 * * * *', async () => {
+    cron.schedule('0 */12 * * *', async () => {
         try {
             await companyService.syncViewInDB();
         } catch (error) {
@@ -16,7 +16,7 @@ export async function cronHandler() {
         }
     });
 
-    cron.schedule('*/5 * * * *', async () => {
+    cron.schedule('0 */12 * * *', async () => {
         try {
             await jobService.syncViewInDB();
         } catch (error) {
@@ -24,7 +24,7 @@ export async function cronHandler() {
         }
     });
 
-    cron.schedule('6 * * * *', async () => {
+    cron.schedule('0 10 * * *', async () => {
         try {
             await authService.removeExpireToken()
         } catch (error) {

@@ -1,6 +1,7 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import 'dotenv/config';
 import cookieParser from 'cookie-parser';
+import { rateLimit } from 'express-rate-limit';
 // import {appRoutes} from './globals/routes/appRoutes';
 import { CustomError, NotFountException } from './globals/cores/error.cores';
 import HTTP_STATUS from './globals/constants/http.constant';
@@ -59,6 +60,18 @@ class Server {
         this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
         this.app.use(express.json()); // req.body  // postman input
+
+        //rate limiter
+        const limiter = rateLimit({
+            windowMs: 15 * 60 * 1000, // 15 minutes
+            limit: 50, // Limit each IP to 50 requests per `window` (here, per 15 minutes).
+            standardHeaders: 'draft-8', 
+            legacyHeaders: false, 
+            ipv6Subnet: 56,
+            message: 'Too many requests, please try again after 15 min'
+        });
+        this.app.use(limiter)
+
         this.app.use(cookieParser());
 
         // this.app.use(SubscriptionMiddleware)
@@ -104,7 +117,7 @@ class Server {
     }
 
     private cronjobs() {
-        cronHandler()
+        cronHandler();
     }
 
     // private listenServer() {
