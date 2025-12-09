@@ -64,7 +64,7 @@ class Jobcontroller {
   }
 
   public async readOne(req: Request, res: Response) {
-    const job = await jobService.readOne(parseInt(req.params.id));
+    const job = await jobService.readOne(parseInt(req.params.id), req.currentUser);
 
     return res.status(HTTP_STATUS.OK).json({
       message: 'Get job successfully',
@@ -107,6 +107,16 @@ class Jobcontroller {
       message: 'Remove job successfully'
     });
   }
+
+  public async getJobView(req: Request, res: Response) {
+    const job = await jobService.getJobView(parseInt(req.params.jobId), req.currentUser);
+
+    return res.status(HTTP_STATUS.OK).json({
+      message: 'get job views successfully',
+      data: job
+    });
+  }
+
 }
 
 export const jobController: Jobcontroller = new Jobcontroller();

@@ -61,6 +61,13 @@ jobRoute.patch(
   asyncWrapper(jobController.updateStatus)
 );
 
+jobRoute.get(
+  '/:jobId/view',
+  verifyUser,
+  allowAccess('ADMIN', 'CANDIDATE', 'RECRUITER'),
+  asyncWrapper(jobController.getJobView)
+);
+
 
 
 export default jobRoute;

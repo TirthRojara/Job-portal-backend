@@ -234,9 +234,9 @@ class CompanyService {
 
         // 1. Distributed lock (prevents duplicate runs across PM2/Docker instances)
         const lockKey = 'lock:cron:views-sync';
-        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 300, 'NX'); // 5min TTL
+        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 240, 'NX'); // 5min TTL
         if (!lockAcquired) {
-            console.log('Cron skipped - another instance running');
+            console.log('Cron skipped company view - another instance running');
             return;
         }
 

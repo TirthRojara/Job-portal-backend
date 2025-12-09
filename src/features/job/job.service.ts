@@ -9,6 +9,7 @@ import { PassThrough } from 'stream';
 import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
 import chalk from 'chalk';
+import { jobRedis } from './job.redis';
 
 class JobService {
     public async create(
@@ -166,7 +167,10 @@ class JobService {
     //   return serializeData(job, dataConfig);
     // }
 
-    public async readOne(id: number): Promise<Job> {
+    public async readOne(id: number, currentUser: UserPayLoad): Promise<Omit<Job, 'totalview'>> {
+        // incr views
+        jobRedis.INCR_views(currentUser.id, id);
+
         const cacheData = await redisClient.get(RedisKey.JOB.ID(id));
         if (cacheData) return JSON.parse(cacheData);
 
@@ -176,7 +180,8 @@ class JobService {
                 company: { select: { name: true } },
                 postBy: { select: { name: true } },
                 jobRole: { select: { name: true } }
-            }
+            },
+            omit: { totalview: true }
         });
 
         if (!job) throw new NotFountException(`Can't find job with id: ${id}`);
@@ -279,6 +284,91 @@ class JobService {
         if (!job) throw new NotFountException(`This job is no longer active or exist`);
 
         return job;
+    }
+
+    public async getJobView(jobId: number, currentUser: UserPayLoad) {
+        const redisCount = await redisClient.get(RedisKey.JOB.VIEWS_COUNT(jobId));
+
+        const dbCount = await prisma.job.findUnique({
+            where: { id: jobId },
+            select: { id: true, totalview: true }
+        });
+
+        if (!dbCount) throw new NotFountException(`Can't find job with id: ${jobId}`);
+
+        const totalCount = Number(redisCount) + dbCount!.totalview!;
+
+        return { jobId: dbCount.id, totalViews: totalCount };
+    }
+
+    public async syncViewInDB() {
+
+        // 1. Distributed lock (prevents duplicate runs across PM2/Docker instances)
+        const lockKey = 'lock:cron:job:views-sync';
+        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 240, 'NX'); // 5min TTL
+        if (!lockAcquired) {
+            console.log('Cron skipped job view - another instance running');
+            return;
+        }
+
+        const keys: string[] = [];
+        let cursor = '0';
+
+        try {
+            // 2. SCAN all keys (non-blocking)
+
+            do {
+                const [nextCursor, elements] = await redisClient.scan(
+                    cursor,
+                    'MATCH',
+                    'job:*:views:count',
+                    'COUNT',
+                    '100'
+                );
+
+                cursor = nextCursor;
+                keys.push(...elements);
+            } while (cursor !== '0');
+
+            if (keys.length === 0) return;
+
+            console.log(`Found ${keys.length} job to sync`);
+
+            // 3. Build batch updates
+            const updates: any[] = [];
+            for (const key of keys) {
+                const jobId = key.split(':')[1];
+                const count = Number((await redisClient.get(key)) || '0');
+
+                if (count > 0) {
+                    updates.push(
+                        prisma.job.update({
+                            where: { id: Number(jobId) },
+                            data: { totalview: { increment: count } }
+                        })
+                    );
+                }
+            }
+
+            if (updates.length === 0) return;
+
+            // 4. Atomic DB update FIRST
+            await prisma.$transaction(updates);
+            console.log(`✅ Synced ${updates.length} job to DB`);
+
+            // 5. Pipeline DEL keys ONLY AFTER DB success
+            const pipeline = redisClient.multi();
+            keys.forEach((key) => pipeline.del(key));
+            await pipeline.exec();
+            console.log(`🗑️  Deleted ${keys.length} Redis keys`);
+        } catch (error) {
+            console.error(`❌ Cron sync failed: ${error}`);
+            // Keys REMAIN → next cron retries! ✅
+        } finally {
+            // 6. Always release lock
+            await redisClient.del(lockKey);
+            console.log('lock relese: syncViewInDb for job');
+        }
     }
 }
 

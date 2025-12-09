@@ -35,7 +35,9 @@ export const RedisKey = {
         SKILL: (jobId: number | string) => `job:${jobId}:skill`,
         BENEFIT: (jobId: number | string) => `job:${jobId}:benefit`,
         ME: (userId: number | string) => `user:${userId}:job`,
-        ID: (jobId: number | string) => `job:${jobId}`
+        ID: (jobId: number | string) => `job:${jobId}`,
+        VIEWS_SET: (jobId: number) => `job:${jobId}:views:set`,
+        VIEWS_COUNT: (jobId: number | string) => `job:${jobId}:views:count`
     },
     JOB_ROLL: 'jobRoll',
     JOB_BENEFIT: 'jobBenefit',
