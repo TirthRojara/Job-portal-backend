@@ -28,7 +28,8 @@ class CandidateEducationService {
             data: {
                 ...rest,
                 candidateProfileId: candidateProfile.id
-            }
+            },
+            include: { education: true }
         });
 
         await redisClient.del(RedisKey.USER.CANDIDATE_EDUCATION(currentUser.id));
@@ -68,9 +69,15 @@ class CandidateEducationService {
         const candidateProfileWithEducation = await prisma.candidateProfile.findUnique({
             where: { userId: currentUser.id },
             include: {
-                CandidateEducation: true // Include related education records
+                CandidateEducation: { include: { education: true } }
             }
         });
+        // const candidateProfileWithEducation = await prisma.candidateProfile.findUnique({
+        //     where: { userId: currentUser.id },
+        //     include: {
+        //         CandidateEducation: true // Include related education records
+        //     }
+        // });
 
         if (!candidateProfileWithEducation) {
             throw new NotFountException(`Candidate profile with User ID: ${currentUser.id} not found`);
@@ -117,7 +124,8 @@ class CandidateEducationService {
             data: {
                 educationId,
                 ...rest
-            }
+            },
+            include: { education: true }
         });
 
         await redisClient.del(RedisKey.USER.CANDIDATE_EDUCATION(currentUser.id));

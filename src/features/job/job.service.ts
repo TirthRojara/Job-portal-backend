@@ -2,7 +2,7 @@ import prisma from '~/prisma';
 import { companyService } from '../company/company.service';
 import { IJob } from './job.interface';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
-import { Job, JobStatus } from '@prisma/client';
+import { Job, JobStatus, WorkPlace } from '@prisma/client';
 import { CustomError, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { jobRoleService } from '../job-role/job-role.service';
 import { PassThrough } from 'stream';
@@ -68,28 +68,41 @@ class JobService {
         limit,
         filter,
         salaryMin,
-        JobStatus
+        // JobStatus
+        location,
+        workplace
     }: {
         page: number;
         limit: number;
         filter: string;
         salaryMin: number;
-        JobStatus: string | null;
+        // JobStatus: string | null;
+        location: string;
+        workplace: WorkPlace
     }) {
         const additionConditionQuery: any = {
             salaryMin: { gte: salaryMin },
-            isDeleted: false
+            isDeleted: false,
+            status: 'ACTIVE',
+            location,
+            workplace
         };
 
-        if (JobStatus && JobStatus.trim() !== '') {
-            additionConditionQuery.status = JobStatus; // only add valid status filter
-        }
+        // if (JobStatus && JobStatus.trim() !== '') {
+        //     additionConditionQuery.status = JobStatus; // only add valid status filter
+        // }
+
+        // await prisma.job.findMany({
+        //     where: {location: }
+        // })
+
+        
 
         const { data, totalCount, totalPages } = await getPaginationAndFilter({
             page,
             limit,
             filter,
-            filterFields: ['title', 'description'],
+            filterFields: ['title', 'description', 'responsibilities', 'requirements'],
             entity: 'job',
             // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
             additionCondition: additionConditionQuery,
@@ -302,7 +315,6 @@ class JobService {
     }
 
     public async syncViewInDB() {
-
         // 1. Distributed lock (prevents duplicate runs across PM2/Docker instances)
         const lockKey = 'lock:cron:job:views-sync';
         const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 240, 'NX'); // 5min TTL
