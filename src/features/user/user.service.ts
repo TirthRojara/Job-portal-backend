@@ -56,7 +56,8 @@ class UserService {
         const newUser = await prisma.user.upsert({
             where: { email },
             create: { name, email, password: hashPassword, role, authType: AuthType.EMAIL },
-            update: {}
+            // update: {} // here there was bug
+            update: { name, email, password: hashPassword, role, authType: AuthType.EMAIL }
         });
 
         if (role === 'RECRUITER') {
@@ -175,20 +176,22 @@ class UserOAuthService {
         });
 
         // new user ✅
-        // user but not verify ✅
+        // user email exist but not verify ✅
         // user exist, verify with email ✅
         // try to login with Oauth and verify ✅
 
         if (user) {
+            // try to login with Oauth and verify ✅
             if (user.authType === AuthType.OAUTH && user.isVerified) {
                 return user;
             }
 
+            // user exist, verify with email ✅
             if (user.authType === AuthType.EMAIL && user.isVerified) {
                 throw new CustomErrorException('Email already in use', 409);
             }
 
-            // user email exist but not verify
+            // user email exist but not verify ✅
             const newUser = await prisma.user.update({
                 where: { email },
                 data: {
@@ -204,7 +207,7 @@ class UserOAuthService {
 
             return newUser;
         } else {
-            // new user
+            // new user ✅
             const newUser = await prisma.user.create({
                 data: {
                     name,

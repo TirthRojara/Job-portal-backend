@@ -6,7 +6,7 @@ export const OTP_DETAILS = {
     // EXPIRATION_TIME:  5 * 1000, // 5 sec
     EXPIRATION_TIME: 3 * 60 * 1000, // 3 minutes
     MIN_INTERVAL: 0.5 * 60 * 1000 , // 30 seconds
-    PASSED_TIME:  4 * 60 * 60 * 1000,
+    PASSED_TIME:  4 * 60 * 60 * 1000, // 4 hour
     MAX_RESEND_COUNT: 3,
 } as const;
 

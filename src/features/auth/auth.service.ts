@@ -107,11 +107,14 @@ class AuthService {
         } else {
             console.log('inside else');
 
+            // Prevents spam: 30-second cooldown between resend OTP request
             if (auth.lastOtpSentAt && Date.now() - auth.lastOtpSentAt.getTime() < OTP_DETAILS.MIN_INTERVAL) {
                 throw new CustomErrorException('You must wait before requesting a new OTP', 429);
             }
 
             const now = Date.now();
+
+            //After 4hrs: resendCount resets to 3 → fresh start
             if (
                 auth.expiresAt === null ||
                 (auth.lastOtpSentAt && now - auth.lastOtpSentAt.getTime() > OTP_DETAILS.PASSED_TIME)
@@ -124,6 +127,7 @@ class AuthService {
                 });
             }
 
+            //check the limit
             if (auth.resendCount <= 0) {
                 console.log(` inside \n if (auth.resendCount <= 0)`);
 
