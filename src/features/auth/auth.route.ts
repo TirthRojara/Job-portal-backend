@@ -67,7 +67,7 @@ authRoute.post('/logout', verifyUser, asyncWrapper(authController.logout));
 
 // #####    GOOGLE OAUTH    #### //
 
-authRoute.get('/getGoogleLoginPage', asyncWrapper(googleAuthController.getGoogleLoginPage));
+authRoute.post('/getGoogleLoginPage', asyncWrapper(googleAuthController.getGoogleLoginPage));
 
 authRoute.get('/google/callback',  asyncWrapper(googleAuthController.googleCallback));
 

@@ -77,6 +77,7 @@ class ApplyService {
         await redisClient.rpop(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE(currentUser.id));
         redisClient.lpushx(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE(currentUser.id), JSON.stringify(apply));
 
+        // if pagination exists then increament it for candidate
         if (await redisClient.exists(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE_PAGINATION(currentUser.id))) {
             await redisClient.incr(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE_PAGINATION(currentUser.id));
         }
@@ -88,6 +89,7 @@ class ApplyService {
             JSON.stringify(applyForRecruiter)
         );
 
+        // if pagination exists then increament it for recruiter
         if (
             await redisClient.exists(
                 RedisKey.APPLY.READ_MY_APPLICATION_RECRUITER_PAGINATION(apply.jobId, apply.companyId)
@@ -152,6 +154,7 @@ class ApplyService {
         const isPaginationExist = await redisClient.exists(
             RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE_PAGINATION(currentUser.id)
         );
+
         const isExist = await redisClient.exists(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE(currentUser.id));
         if (!isExist && !isPaginationExist) {
             const rows = await prisma.apply.findMany({
@@ -164,12 +167,12 @@ class ApplyService {
                     RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE(currentUser.id),
                     ...rows.map((r) => JSON.stringify(r))
                 );
-                redisClient.expire(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE(currentUser.id), 7200);
+                redisClient.expire(RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE(currentUser.id), 7200); // 2 hour
                 redisClient.set(
                     RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE_PAGINATION(currentUser.id),
                     JSON.stringify(totalCount),
                     'EX',
-                    7200
+                    7200  // 2 hour
                 );
             }
         }

@@ -58,6 +58,7 @@ class JobService {
             data: { jobCount: { increment: 1 } }
         });
 
+        // here you should not delete the key insteed you should get the key and update the value
         await redisClient.del(RedisKey.JOB.ME(currentUser.id));
 
         return job;
@@ -245,6 +246,8 @@ class JobService {
         });
 
         await redisClient.del(RedisKey.JOB.ME(currentUser.id));
+
+        // here also update the key
         await redisClient.del(RedisKey.JOB.ID(job.id));
 
         return job;
@@ -317,7 +320,7 @@ class JobService {
     public async syncViewInDB() {
         // 1. Distributed lock (prevents duplicate runs across PM2/Docker instances)
         const lockKey = 'lock:cron:job:views-sync';
-        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 240, 'NX'); // 5min TTL
+        const lockAcquired = await redisClient.set(lockKey, '1', 'EX', 240, 'NX'); // 4min TTL
         if (!lockAcquired) {
             console.log('Cron skipped job view - another instance running');
             return;
@@ -373,9 +376,11 @@ class JobService {
             keys.forEach((key) => pipeline.del(key));
             await pipeline.exec();
             console.log(`🗑️  Deleted ${keys.length} Redis keys`);
+
         } catch (error) {
             console.error(`❌ Cron sync failed: ${error}`);
             // Keys REMAIN → next cron retries! ✅
+
         } finally {
             // 6. Always release lock
             await redisClient.del(lockKey);

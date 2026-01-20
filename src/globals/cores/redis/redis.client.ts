@@ -4,10 +4,28 @@ import Redis from 'ioredis';
 
 // export default redisClient;
 
-const redisPublisher = new Redis();
-const redisSubscriber = new Redis();
+const config = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    maxRetriesPerRequest: 3
+};
 
-const redisClient = new Redis();
+// Eager publisher (immediate connect)
+const redisPublisher = new Redis(config);
+
+// Lazy subscriber (connects on first subscribe())
+const redisSubscriber = new Redis({ ...config, lazyConnect: true });
+
+// Eager cache client
+const redisClient = new Redis(config);
+
+// Add error handlers to prevent crashes
+[redisPublisher, redisSubscriber, redisClient].forEach((client, i) => {
+    client.on('error', (err) => {
+        console.error(`Redis client ${i} error:`, err.message);
+        // Graceful fallback: e.g., skip cache, use DB
+    });
+});
 
 export { redisPublisher, redisSubscriber, redisClient };
 

@@ -22,6 +22,15 @@ class Server {
 
     constructor() {
         this.app = express();
+
+        this.app.use(
+            cors({
+                origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'],
+                methods: ['GET', 'POST', 'PUT', 'DELETE'],
+                credentials: true // Important for cookies/sessions
+            })
+        );
+
         this.httpServer = http.createServer(this.app);
 
         // this.io = new SocketIOServer(this.httpServer, {
@@ -65,12 +74,12 @@ class Server {
         const limiter = rateLimit({
             windowMs: 15 * 60 * 1000, // 15 minutes
             limit: 50, // Limit each IP to 50 requests per `window` (here, per 15 minutes).
-            standardHeaders: 'draft-8', 
-            legacyHeaders: false, 
+            standardHeaders: 'draft-8',
+            legacyHeaders: false,
             ipv6Subnet: 56,
             message: 'Too many requests, please try again after 15 min'
         });
-        this.app.use(limiter)
+        this.app.use(limiter);
 
         this.app.use(cookieParser());
 
@@ -129,7 +138,7 @@ class Server {
     // }
     private listenServer() {
         // const port = process.env.PORT || 3030;
-        const port = process.env.PORT || 3000;
+        const port = process.env.PORT || 5000;
         this.httpServer.listen(port, () => {
             console.log(`Server is running on port ${port}`);
         });

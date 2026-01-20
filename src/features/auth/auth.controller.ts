@@ -23,7 +23,7 @@ import {
     ResentOtpType
 } from './auth.interface';
 import { userOAuthService, userService } from '../user/user.service';
-import { AuthType, OTPFor } from '@prisma/client';
+import { AuthType, OTPFor, Role } from '@prisma/client';
 import { sendEmail } from '~/globals/helpers/sendMail.helper';
 import {
     BadRequestException,
@@ -163,13 +163,22 @@ class AuthController {
             maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
         });
 
+        res.cookie('role', user.role, {
+            httpOnly: true,
+            secure: true,
+            // secure: false, // only in dev
+            sameSite: 'strict',
+            maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
+        });
+
         const expiresAt = authService.getExpiryDate(refreshTokenExpiry);
         await authService.storeRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
 
         return res.status(HTTP_STATUS.OK).json({
             message: 'User login successfully',
             data: {
-                token: accessToken
+                token: accessToken,
+                role: user.role
             }
         });
     }
@@ -420,12 +429,23 @@ class GoogleAuthController {
     public async getGoogleLoginPage(req: Request, res: Response) {
         const { generateCodeVerifier, generateState } = await import('arctic');
 
+        const { role } = req.body;
+        console.log('role in getGoogleLoginPage: ', role);
         if (req.currentUser) return res.redirect('/');
 
         const state = generateState();
         const codeVerifier = generateCodeVerifier();
         const scopes = ['openid', 'profile', 'email'];
         const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+
+        // store state as cookie
+        res.cookie('oauth_role', role, {
+            secure: false, // set to false in localhost
+            path: '/',
+            httpOnly: true,
+            maxAge: 10 * 60 * 1000, // 10 min
+            sameSite: 'lax' // for dev mode
+        });
 
         // store state as cookie
         res.cookie('state', state, {
@@ -445,7 +465,14 @@ class GoogleAuthController {
             sameSite: 'lax' // for dev mode
         });
 
-        res.redirect(url.toString());
+        // res.redirect(url.toString());
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Url generated',
+            data: {
+                url: url.toString()
+            }
+        });
     }
 
     public async googleCallback(req: Request, res: Response) {
@@ -463,10 +490,23 @@ class GoogleAuthController {
         try {
             const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
 
-            const role = req.cookies['role'];
-
             const claims = decodeIdToken(tokens.idToken());
             const { sub: googleUserId, name, email } = claims as any;
+
+            let roleCookie = req.cookies['oauth_role'];
+            console.log({ roleCookie });
+            // if (!roleCookie) {
+            //     const user = await prisma.user.findUnique({
+            //         where: { email }
+            //     });
+
+            //     if (user) {
+            //         roleCookie = user.role;
+            //     }
+
+            //     // console.log('roleCookie from db: ', roleCookie);
+            //     // throw new BadRequestException('Role cookie is missing. Please try again!');
+            // }
 
             // ******************************************
 
@@ -475,7 +515,7 @@ class GoogleAuthController {
                 email,
                 authType: AuthType.OAUTH,
                 ProviderAuthId: googleUserId,
-                role
+                role: roleCookie
             };
 
             ///////////////////////
@@ -511,14 +551,16 @@ class GoogleAuthController {
             const expiresAt = authService.getExpiryDate(refreshTokenExpiry);
             await authService.storeRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
 
-            // res.redirect('http://localhost:5173/success');
+            const lowercaseRole = user.role.toLowerCase();
 
-            return res.status(HTTP_STATUS.OK).json({
-                message: 'User verified successfully',
-                data: {
-                    token: accessToken
-                }
-            });
+            res.redirect(`http://localhost:3000/dashboard/${lowercaseRole}`);
+
+            // return res.status(HTTP_STATUS.OK).json({
+            //     message: 'User verified successfully',
+            //     data: {
+            //         token: accessToken
+            //     }
+            // });
         } catch (e) {
             throw new BadRequestException(
                 `Couldn't login with Google because of invalid login attempt. Please try again! \n ${e}`

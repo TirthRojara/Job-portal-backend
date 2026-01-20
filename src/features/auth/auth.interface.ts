@@ -41,7 +41,7 @@ export interface ISignUpPayload {
     email: string;
     password: string;
     role: ROLEwithoutADMIN;
-    authType: AuthType;
+    authType?: AuthType;
 }
 
 export enum ResentOtpType {
@@ -96,7 +96,7 @@ export interface IOAuthSignupLoginPayload {
     email: string;
     authType: AuthType;
     ProviderAuthId: string;
-    role: Role;
+    role?: Role;
 }
 
 export interface ISetPasswordPayload {

@@ -15,7 +15,7 @@ let io: SocketIOServer | null = null;
 export const initSocket = (httpServer: any): SocketIOServer => {
     io = new SocketIOServer(httpServer, {
         cors: {
-            origin: ['http://localhost:5173', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins
+            origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             credentials: true
         }
