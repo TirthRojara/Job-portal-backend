@@ -39,6 +39,7 @@ import { Http2ServerRequest } from 'http2';
 // import { generateCodeVerifier, generateState } from 'arctic';
 // const { generateCodeVerifier, generateState } = await import('arctic');
 import { google } from './auth.OAuth';
+import { log } from '~/globals/helpers/log.helper';
 
 // async function loadArctic() {
 //   const { generateCodeVerifier, generateState } = await import('arctic');
@@ -55,14 +56,22 @@ class AuthController {
 
         // await sendEmail(user.email, { name: user.name, otp }, OTPFor.VERIFICATION);
 
+        res.cookie('email', user.email, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 20 * 60 * 1000 // 10 minutes
+        });
+
         return res.status(HTTP_STATUS.OK).json({
             message: `OTP sent successfully to ${user.email}`
         });
     }
 
     public async resendOtp(req: Request, res: Response) {
-        const { email, type } = req.body as IResendOtp;
+        const { type } = req.body as IResendOtp;
 
+        const email = req.cookies['email'];
         const user = await userService.findUserByEmail(email);
         console.log(user.id);
 
@@ -77,7 +86,9 @@ class AuthController {
     }
 
     public async verify(req: Request, res: Response) {
-        const { otp, email, isRememberMe } = req.body as IVerifyPayload;
+        const { otp } = req.body as IVerifyPayload;
+
+        const email = req.cookies['email'];
 
         const user = await userService.findUserByEmail(email);
 
@@ -98,7 +109,8 @@ class AuthController {
             expiresIn: TOKEN_EXPIRY.ACCESS
         });
 
-        const refreshTokenExpiry = isRememberMe ? TOKEN_EXPIRY.REFRESH.REMEMBER_ME : TOKEN_EXPIRY.REFRESH.NORMAL;
+        // const refreshTokenExpiry = isRememberMe ? TOKEN_EXPIRY.REFRESH.REMEMBER_ME : TOKEN_EXPIRY.REFRESH.NORMAL;
+        const refreshTokenExpiry = TOKEN_EXPIRY.REFRESH.NORMAL;
         const refreshToken = authService.generateJwtToken(refreshPayload, process.env.REFRESH_TOKEN_SECRET!, {
             expiresIn: refreshTokenExpiry
         });
@@ -107,7 +119,8 @@ class AuthController {
             httpOnly: true,
             secure: true,
             sameSite: 'strict',
-            maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
+            maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
+            // maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
         });
 
         const expiresAt = authService.getExpiryDate(refreshTokenExpiry);
@@ -116,7 +129,8 @@ class AuthController {
         return res.status(HTTP_STATUS.OK).json({
             message: 'User verified successfully',
             data: {
-                token: accessToken
+                token: accessToken,
+                role: user.role
             }
         });
     }
@@ -216,8 +230,9 @@ class AuthController {
         const refreshToken = req.cookies['__secure-rtk'];
 
         console.log('refreshToken', refreshToken);
+        log.info('get access token called');
 
-        if (!refreshToken) throw new UnauthorizedException('Refresh token is requied');
+        if (!refreshToken) throw new BadRequestException('Refresh token is requied');
 
         const decoded = (await authService.verifyJwtToken(
             refreshToken,
@@ -252,7 +267,8 @@ class AuthController {
         return res.status(HTTP_STATUS.OK).json({
             message: 'Get access token successfully',
             data: {
-                token: accessToken
+                token: accessToken,
+                role: user.role
             }
         });
     }
@@ -272,13 +288,22 @@ class AuthController {
 
         // send the email here
 
+        res.cookie('email', user.email, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 20 * 60 * 1000 // 20 minutes
+        });
+
         return res.status(HTTP_STATUS.OK).json({
             message: 'OTP sent for forgot password successfully'
         });
     }
 
     public async verifyForgotPassword(req: Request, res: Response) {
-        const { email, otp } = req.body as IVerifyForgotPasswordPayload;
+        const { otp } = req.body as IVerifyForgotPasswordPayload;
+
+        const email = req.cookies['email'];
 
         const user = await userService.findUserByEmail(email);
 
@@ -300,6 +325,14 @@ class AuthController {
             data: { resetToken }
         });
 
+        res.cookie('__secure-reset-token', resetToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 20 * 60 * 1000, // 20 minutes
+            path: '/' // ✅ CRITICAL: Add this
+        });
+
         return res.status(HTTP_STATUS.OK).json({
             message: 'OTP verified successfully',
             data: {
@@ -311,7 +344,10 @@ class AuthController {
     public async resetForgotPassword(req: Request, res: Response) {
         const { newPassword } = req.body as IresetForgotPasswordPayload;
 
-        const resetToken = req.headers.authorization?.split(' ')[1];
+        // const resetToken = req.headers.authorization?.split(' ')[1];
+        const resetToken = req.cookies['__secure-reset-token'];
+
+        console.log('reset token: ', resetToken);
 
         if (!resetToken) throw new UnauthorizedException('Reset token required');
 
@@ -345,6 +381,13 @@ class AuthController {
         await prisma.authOTP.update({
             where: { userId: user.id },
             data: { resetToken: null }
+        });
+
+        res.clearCookie('__secure-reset-token', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            path: '/' // ✅ CRITICAL: Must match the 'Set' path exactly
         });
 
         return res.status(HTTP_STATUS.OK).json({

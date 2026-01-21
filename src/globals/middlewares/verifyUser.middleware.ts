@@ -54,6 +54,6 @@ export async function verifyUser(req: Request, res: Response, next: NextFunction
     req.currentUser = auth;
     next();
   } catch (error) {
-    next(new BadRequestException(`Please login again. \n ${error}`));
+    next(new UnauthorizedException(`Please login again. \n ${error}`));
   }
 }

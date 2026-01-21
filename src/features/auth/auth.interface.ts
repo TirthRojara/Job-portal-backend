@@ -50,14 +50,14 @@ export enum ResentOtpType {
 }
 
 export interface IResendOtp {
-    email: string;
+    // email: string;
     type: ResentOtpType;
 }
 
 export interface IVerifyPayload {
     otp: number;
-    email: string;
-    isRememberMe: boolean;
+    // email: string;
+    // isRememberMe: boolean;
 }
 
 export interface ILoginPayload {
@@ -76,7 +76,7 @@ export interface IForgotPasswordPayload {
 }
 
 export interface IVerifyForgotPasswordPayload {
-    email: string;
+    // email: string;
     otp: number;
 }
 

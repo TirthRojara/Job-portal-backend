@@ -22,14 +22,14 @@ export const signupSchema = Joi.object({
 });
 
 export const resendOtpSchema = Joi.object({
-    email: Joi.string().email().required(),
+    // email: Joi.string().email().required(),
     type: Joi.string().valid(ResentOtpType.signup, ResentOtpType.forgotpassword).required().strict()
 });
 
 export const verifySchema = Joi.object({
     otp: Joi.number().required().strict(),
-    email: Joi.string().email().required(),
-    isRememberMe: Joi.boolean().required().strict()
+    // email: Joi.string().email().required(),
+    // isRememberMe: Joi.boolean().required().strict()
 });
 
 export const logInSchema = Joi.object({
@@ -49,7 +49,7 @@ export const forgotPasswordSchema = Joi.object({
 });
 
 export const verifyForgotPasswordSchema = Joi.object({
-    email: Joi.string().email().required(),
+    // email: Joi.string().email().required(),
     otp: Joi.number().required().strict()
 });
 
