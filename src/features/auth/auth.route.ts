@@ -73,4 +73,6 @@ authRoute.get('/google/callback',  asyncWrapper(googleAuthController.googleCallb
 
 authRoute.post('/setPassword', verifyUser, validateSchema(setPasswordForOauth),asyncWrapper(googleAuthController.setPasswordForOauth))
 
+authRoute.get('/isPasswordSet', verifyUser, asyncWrapper(googleAuthController.isPasswordSet))
+
 export default authRoute;

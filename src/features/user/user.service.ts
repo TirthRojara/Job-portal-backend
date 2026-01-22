@@ -158,6 +158,8 @@ class UserService {
     }
 
     public async getUserData(currentUser: UserPayLoad) {
+        // ‼️‼️ add redis cache here ‼️‼️
+
         const user = await prisma.user.findUnique({
             where: { id: currentUser.id },
             select: { id: true, email: true, name: true, role: true, authType: true }
@@ -205,6 +207,12 @@ class UserOAuthService {
                 }
             });
 
+            await prisma.authOTP.upsert({
+                where: { userId: newUser.id },
+                create: { userId: newUser.id },
+                update: {}
+            });
+
             return newUser;
         } else {
             // new user ✅
@@ -218,6 +226,12 @@ class UserOAuthService {
                     authType: AuthType.OAUTH,
                     ProviderAuthId
                 }
+            });
+
+            await prisma.authOTP.upsert({
+                where: { userId: newUser.id },
+                create: { userId: newUser.id },
+                update: {}
             });
 
             // check is this working or not !!!!!!!!!!!!!!!!!!!!
@@ -259,6 +273,17 @@ class UserOAuthService {
             where: { id: userId },
             data: { password: hashPassword }
         });
+    }
+
+    public async isPasswordSet(currentUser: UserPayLoad): Promise<boolean> {
+        const user = await prisma.user.findUnique({
+            where: { id: currentUser.id }
+        });
+
+        // If password is NOT null, this returns true. If it is null, returns false.
+        const isPasswordSet = user!.password !== null;
+
+        return isPasswordSet;
     }
 }
 

@@ -211,6 +211,7 @@ class AuthService {
     public async storeRefreshToken(data: IRefreshToken) {
         const refreshToken = await prisma.refreshToken.create({ data });
 
+        log.info('Stored refresh token:', refreshToken);
         return refreshToken;
     }
 

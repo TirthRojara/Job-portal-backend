@@ -620,6 +620,17 @@ class GoogleAuthController {
             message: 'password set successfully'
         });
     }
+
+    public async isPasswordSet(req: Request, res: Response) {
+        const isPasswordSet = await userOAuthService.isPasswordSet(req.currentUser);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get Password set status successfully',
+            data: {
+                isPasswordSet
+            }
+        });
+    }
 }
 
 export const googleAuthController: GoogleAuthController = new GoogleAuthController();
