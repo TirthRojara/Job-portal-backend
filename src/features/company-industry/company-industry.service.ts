@@ -51,7 +51,15 @@ class CompanyIndustryService {
 
         await companyService.readOneWithoutUserId(companyId);
         const companyIndustry = await prisma.companyIndustry.findMany({
-            where: { companyId }
+            where: { companyId },
+            select: {
+                id: true,
+                industry: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
         });
 
         if (companyIndustry.length === 0) throw new NotFountException(`No data found in company with id: ${companyId}`);
