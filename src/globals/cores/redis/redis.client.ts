@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { log } from '~/globals/helpers/log.helper';
 
 // const redisClient = new Redis()
 
@@ -27,55 +28,61 @@ import Redis from 'ioredis';
 // // Eager cache client
 // const redisClient = new Redis(config);
 
-
-
-
-
-
-
 const baseConfig = {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    port: parseInt(process.env.REDIS_PORT || '6379')
 };
-
 
 // 1. PUB/SUB CLIENTS (Must never fail, just wait)
 // 'maxRetriesPerRequest: null' is CRITICAL for Pub/Sub and BullMQ
 const pubSubConfig = {
     ...baseConfig,
-    maxRetriesPerRequest: null, 
+    maxRetriesPerRequest: null,
     enableReadyCheck: false,
     // retryStrategy: (times: any) => Math.min(times * 60, 1000), // Keep trying forever
-    retryStrategy: () => 1000 * 60 * 10, // for development
+    retryStrategy: () => 1000 * 60 * 10 // for development
 };
 
- const redisPublisher = new Redis(pubSubConfig);
- const redisSubscriber = new Redis(pubSubConfig);
+const redisPublisher = new Redis(pubSubConfig);
+const redisSubscriber = new Redis(pubSubConfig);
 
 // 2. CACHE CLIENT (Should fail fast so we can fallback to DB)
 const cacheConfig = {
     ...baseConfig,
-    maxRetriesPerRequest: 1,  // Fail request immediately if Redis is down
+    maxRetriesPerRequest: 1, // Fail request immediately if Redis is down
     enableOfflineQueue: false, // ✅ CRITICAL FIX: Don't stack commands if down
     // retryStrategy: (times: any) => Math.min(times * 60, 1000), // Reconnect in background
-    retryStrategy: () => 1000 * 60 * 10, // for development
+    retryStrategy: () => 1000 * 60 * 10 // for development
 };
 
- const redisClient = new Redis(cacheConfig);
+const redisClient = new Redis(cacheConfig);
 
+// 👇 GLOBAL ERROR HANDLER INTERCEPTOR 👇
+// We save the original methods
+const originalGet = redisClient.get.bind(redisClient);
+const originalSet = redisClient.set.bind(redisClient);
 
+// Overwrite .get()
+redisClient.get = (async (...args: any[]) => {
+    try {
+        // 👇 FIX: Cast originalGet to 'any' so it accepts the spread array
+        return await (originalGet as any)(...args);
+    } catch (error) {
+        log.warn('Redis server is down.');
+        return null;
+    }
+}) as any;
 
-
-
-
-
-
-
-
-
-
-
-
+// Overwrite .set()
+redisClient.set = (async (...args: any[]) => {
+    try {
+        // 👇 FIX: Cast originalSet to 'any'
+        return await (originalSet as any)(...args);
+    } catch (error) {
+        log.warn('Redis server is down.');
+        return 'OK';
+    }
+}) as any;
 
 // Add error handlers to prevent crashes
 [redisPublisher, redisSubscriber, redisClient].forEach((client, i) => {
@@ -86,6 +93,8 @@ const cacheConfig = {
 });
 
 export { redisPublisher, redisSubscriber, redisClient };
+
+//==================================================================
 
 // async function  testRedis() {
 //     await redisClient.set('testKey', 'testValue')
