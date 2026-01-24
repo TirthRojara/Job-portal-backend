@@ -37,6 +37,14 @@ class CompanyIndustryService {
             data: {
                 companyId: company.id,
                 industryId
+            },
+            select: {
+                id: true,
+                industry: {
+                    select: {
+                        name: true
+                    }
+                }
             }
         });
 

@@ -26,7 +26,7 @@ class Server {
         this.app.use(
             cors({
                 origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'],
-                methods: ['GET', 'POST', 'PUT', 'DELETE'],
+                methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
                 credentials: true // Important for cookies/sessions
             })
         );

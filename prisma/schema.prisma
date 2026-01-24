@@ -141,6 +141,7 @@ model CandidateExperience {
   @@unique([id, candidateProfileId])
 }
 
+//establishDate => optional
 model Company {
   id              Int               @id @default(autoincrement())
   name            String
