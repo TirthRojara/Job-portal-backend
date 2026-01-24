@@ -81,10 +81,11 @@ class CompanyIndustryService {
 
     public async remove(industryId: number, companyId: number, currentUser: UserPayLoad): Promise<void> {
         const company = await companyService.findOne(companyId, currentUser.id);
-        await this.findIndustry(industryId);
+        // await this.findIndustry(industryId);
 
         await prisma.companyIndustry.delete({
-            where: { companyId_industryId: { companyId: company.id, industryId } }
+            // where: { companyId_industryId: { companyId: company.id, industryId } }
+            where: { id: industryId }
         });
 
         await redisClient.del(RedisKey.COMPANY.INDUSTRY(companyId));

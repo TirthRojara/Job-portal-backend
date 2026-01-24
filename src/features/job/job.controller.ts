@@ -20,7 +20,7 @@ class Jobcontroller {
 
     public async readAll(req: Request, res: Response) {
         // let { page = 1, limit = 5, filter = '', salaryMin = 0, JobStatus = 'ACTIVE' } = req.query;
-        let { page = 1, limit = 5, filter = '', salaryMin = 0, location = '', workplace = '' } = req.query;
+        let { page = 1, limit = 5, filter = '', salaryMin = 0, location, workplace } = req.query;
 
         const { job, totalCount, totalPages } = await jobService.readAll({
             page: parseInt(page as string),

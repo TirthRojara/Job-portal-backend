@@ -11,7 +11,8 @@ export async function getPaginationAndFilter({
   additionCondition,
   orderCondition = {},
   include = {},
-  select = {}
+  select = {},
+  omit = {}
 }: any) {
   let skip: number = (page - 1) * limit;
 
@@ -42,10 +43,21 @@ export async function getPaginationAndFilter({
     take: limit
   };
 
+  // if (Object.keys(select).length > 0) {
+  //   queryOptions.select = select;
+  // } else if (Object.keys(include).length > 0) {
+  //   queryOptions.include = include;
+  // }
+
   if (Object.keys(select).length > 0) {
     queryOptions.select = select;
-  } else if (Object.keys(include).length > 0) {
-    queryOptions.include = include;
+  } else {
+    if (Object.keys(include).length > 0) {
+      queryOptions.include = include;
+    }
+    if (Object.keys(omit).length > 0) {
+      queryOptions.omit = omit;
+    }
   }
 
   console.log(queryOptions);

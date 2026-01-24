@@ -78,26 +78,25 @@ class JobService {
         filter: string;
         salaryMin: number;
         // JobStatus: string | null;
-        location: string;
-        workplace: WorkPlace
+        location?: string;
+        workplace?: WorkPlace;
     }) {
         const additionConditionQuery: any = {
             salaryMin: { gte: salaryMin },
             isDeleted: false,
-            status: 'ACTIVE',
-            location,
-            workplace
+            status: 'ACTIVE'
+            // location,
+            // workplace
         };
 
-        // if (JobStatus && JobStatus.trim() !== '') {
-        //     additionConditionQuery.status = JobStatus; // only add valid status filter
-        // }
+        if (location && location.trim() !== '') {
+            additionConditionQuery.location = location;
+        }
 
-        // await prisma.job.findMany({
-        //     where: {location: }
-        // })
+        if (workplace) {
+            additionConditionQuery.workplace = workplace;
+        }
 
-        
 
         const { data, totalCount, totalPages } = await getPaginationAndFilter({
             page,
@@ -107,7 +106,9 @@ class JobService {
             entity: 'job',
             // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
             additionCondition: additionConditionQuery,
-            orderCondition: { postedAt: 'desc' }
+            orderCondition: { postedAt: 'desc' },
+            omit: { postById: true, isDeleted: true, jobRoleId: true },
+            include: { jobRole: true }
         });
 
         return { job: data, totalCount, totalPages };
@@ -376,11 +377,9 @@ class JobService {
             keys.forEach((key) => pipeline.del(key));
             await pipeline.exec();
             console.log(`🗑️  Deleted ${keys.length} Redis keys`);
-
         } catch (error) {
             console.error(`❌ Cron sync failed: ${error}`);
             // Keys REMAIN → next cron retries! ✅
-
         } finally {
             // 6. Always release lock
             await redisClient.del(lockKey);
