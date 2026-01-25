@@ -44,14 +44,16 @@ class Jobcontroller {
     }
 
     public async readAllForRecruiter(req: Request, res: Response) {
-        let { page = 1, limit = 5, filter = '', salaryMin = 0 } = req.query;
+        let { page = 1, limit = 5, filter = '', salaryMin = 0, location, workplace } = req.query;
 
         const { job, totalCount, totalPages } = await jobService.readAllForRecruiter(
             {
                 page: parseInt(page as string),
                 limit: parseInt(limit as string),
                 filter: filter as string,
-                salaryMin: parseInt(salaryMin as string)
+                salaryMin: parseInt(salaryMin as string),
+                location: location as string,
+                workplace: workplace as WorkPlace
             },
             req.currentUser
         );

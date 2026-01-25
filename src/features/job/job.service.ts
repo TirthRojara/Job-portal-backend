@@ -10,6 +10,7 @@ import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
 import chalk from 'chalk';
 import { jobRedis } from './job.redis';
+import { log } from '~/globals/helpers/log.helper';
 
 class JobService {
     public async create(
@@ -90,25 +91,27 @@ class JobService {
         };
 
         if (location && location.trim() !== '') {
-            additionConditionQuery.location = location;
+            additionConditionQuery.location = {
+                contains: location,
+                mode: 'insensitive'
+            };
         }
 
         if (workplace) {
             additionConditionQuery.workplace = workplace;
         }
 
-
         const { data, totalCount, totalPages } = await getPaginationAndFilter({
             page,
             limit,
             filter,
-            filterFields: ['title', 'description', 'responsibilities', 'requirements'],
+            filterFields: ['title', 'description', 'responsibilities', 'requirements', 'location'],
             entity: 'job',
             // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
             additionCondition: additionConditionQuery,
             orderCondition: { postedAt: 'desc' },
-            omit: { postById: true, isDeleted: true, jobRoleId: true },
-            include: { jobRole: true }
+            omit: { postById: true, isDeleted: true, jobRoleId: true, companyId: true },
+            include: { jobRole: true, company: { select: { id: true, name: true } } }
         });
 
         return { job: data, totalCount, totalPages };
@@ -119,31 +122,53 @@ class JobService {
             page,
             limit,
             filter,
-            salaryMin
+            salaryMin,
+            location,
+            workplace
         }: {
             page: number;
             limit: number;
             filter: string;
             salaryMin: number;
+            location?: string;
+            workplace?: WorkPlace;
         },
         currentUser: UserPayLoad
     ) {
-        const cacheData = await redisClient.get(RedisKey.JOB.ME(currentUser.id));
-        if (cacheData) return JSON.parse(cacheData);
+        // const cacheData = await redisClient.get(RedisKey.JOB.ME(currentUser.id));
+        // if (cacheData) return JSON.parse(cacheData);
+
+        const additionConditionQuery: any = {
+            salaryMin: { gte: salaryMin },
+            postById: currentUser.id
+        };
+
+        if (location && location.trim() !== '') {
+            additionConditionQuery.location = {
+                contains: location,
+                mode: 'insensitive'
+            };
+        }
+
+        if (workplace) {
+            additionConditionQuery.workplace = workplace;
+        }
 
         const { data, totalCount, totalPages } = await getPaginationAndFilter({
             page,
             limit,
             filter,
-            filterFields: ['title', 'description'],
+            filterFields: ['title', 'description', 'responsibilities', 'requirements', 'location'],
             entity: 'job',
-            additionCondition: { salaryMin: { gte: salaryMin }, postById: currentUser.id },
-            orderCondition: { postedAt: 'desc' }
+            additionCondition: additionConditionQuery,
+            orderCondition: { postedAt: 'desc' },
+            omit: { isDeleted: true, jobRoleId: true, companyId: true },
+            include: { jobRole: true, company: { select: { id: true, name: true } } }
         });
 
-        redisClient
-            .set(RedisKey.JOB.ME(currentUser.id), JSON.stringify({ job: data, totalCount, totalPages }), 'EX', 43200)
-            .catch((err) => console.error('Redis set failed', err));
+        // redisClient
+        //     .set(RedisKey.JOB.ME(currentUser.id), JSON.stringify({ job: data, totalCount, totalPages }), 'EX', 43200)
+        //     .catch((err) => console.error('Redis set failed', err));
 
         return { job: data, totalCount, totalPages };
     }
