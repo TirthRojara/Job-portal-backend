@@ -98,7 +98,7 @@ class CandidateProfileService {
                 }
             });
 
-            if (oldCV) {
+            if (oldCV?.cv) {
                 deleteCV(oldCV.cv);
             }
 

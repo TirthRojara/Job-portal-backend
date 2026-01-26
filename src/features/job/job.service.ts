@@ -3,7 +3,7 @@ import { companyService } from '../company/company.service';
 import { IJob } from './job.interface';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import { Job, JobStatus, WorkPlace } from '@prisma/client';
-import { CustomError, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
+import { BadRequestException, CustomError, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { jobRoleService } from '../job-role/job-role.service';
 import { PassThrough } from 'stream';
 import { redisClient } from '~/globals/cores/redis/redis.client';
@@ -120,41 +120,73 @@ class JobService {
         // return { job: data, totalCount, totalPages };
 
         //======================================================================================================
-        // ✅ RAW SQL for performance optimization && to include isAppliedByUser field
+        // ✅ RAW SQL for performance optimization && to include isAppliedByUser & isSaved field
         //======================================================================================================
 
+        // 1. Get current candidate ID
         const candidateProfile = await prisma.candidateProfile.findUnique({
             where: { userId: currentUser.id }
         });
-        const currentCandidateProfileId = candidateProfile?.id!;
+        // Ensure we have a valid ID (or -1 if none, to prevent null issues in SQL)
+        const currentCandidateProfileId = candidateProfile?.id ?? -1;
 
         const offset = (page - 1) * limit;
 
+        // 2. Initialize Parameters Array
+        // We start with the values needed for the static parts of the query (Joins & Base Where)
+        // Param $1: candidateId (for Apply join)
+        // Param $2: candidateId (for SaveJob join)
+        // Param $3: salaryMin
+        const queryParams: any[] = [currentCandidateProfileId, currentCandidateProfileId, salaryMin];
+
+        // Helper to get current parameter placeholder (e.g., "$4")
+        let paramIndex = 4;
+
+        // 3. Build Dynamic WHERE Clause
         let whereClause = `
         WHERE j."isDeleted" = false 
         AND j."status" = 'ACTIVE' 
-        AND j."salaryMin" >= ${salaryMin}
+        AND j."salaryMin" >= $3
     `;
 
+        // --- Location Filter ---
         if (location && location.trim() !== '') {
-            whereClause += ` AND LOWER(j."location") LIKE '%${location.toLowerCase()}%'`;
-        }
-        if (workplace) {
-            whereClause += ` AND j."workplace" = '${workplace}'`;
+            whereClause += ` AND LOWER(j."location") LIKE $${paramIndex}`;
+            queryParams.push(`%${location.toLowerCase()}%`);
+            paramIndex++;
         }
 
+        // --- Workplace Filter ---
+        if (workplace) {
+            whereClause += ` AND j."workplace" = $${paramIndex}::"WorkPlace"`;
+            queryParams.push(workplace);
+            paramIndex++;
+        }
+
+        // --- General Search Filter (Title, Desc, etc.) ---
         if (filter) {
+            // We push the filter string ONCE and reuse the parameter index for all OR conditions
+            const filterParamIndex = paramIndex;
+            queryParams.push(`%${filter.toLowerCase()}%`);
+            paramIndex++;
+
             whereClause += ` AND (
-            LOWER(j."title") LIKE '%${filter.toLowerCase()}%' OR
-            LOWER(j."description") LIKE '%${filter.toLowerCase()}%' OR
-            LOWER(j."responsibilities") LIKE '%${filter.toLowerCase()}%' OR
-            LOWER(j."requirements") LIKE '%${filter.toLowerCase()}%' OR
-            LOWER(j."location") LIKE '%${filter.toLowerCase()}%'
+            LOWER(j."title") LIKE $${filterParamIndex} OR
+            LOWER(j."description") LIKE $${filterParamIndex} OR
+            LOWER(j."responsibilities") LIKE $${filterParamIndex} OR
+            LOWER(j."requirements") LIKE $${filterParamIndex} OR
+            LOWER(j."location") LIKE $${filterParamIndex}
         )`;
         }
 
-        // ✅ EXACT JobResponse structure
-        const jobsRaw = await prisma.$queryRawUnsafe(`
+        // 4. Main Query (Fetch Jobs)
+        // We need to add LIMIT and OFFSET to the parameters for the main query
+        const mainQueryParams = [...queryParams, limit, offset];
+        const limitIndex = paramIndex;
+        const offsetIndex = paramIndex + 1;
+
+        const jobsRaw = await prisma.$queryRawUnsafe(
+            `
         SELECT 
             j."id", 
             j."title", 
@@ -174,28 +206,47 @@ class JobService {
             jr."name" as "jobRoleName",
             c."id" as "companyId",
             c."name" as "companyName",
-            CASE WHEN a."jobId" IS NOT NULL THEN true ELSE false END as "isAppliedByUser"
+            
+            -- Check if Applied (Using $1)
+            CASE WHEN a."jobId" IS NOT NULL THEN true ELSE false END as "isAppliedByUser",
+            
+            -- Check if Saved (Using $2)
+            CASE WHEN s."jobId" IS NOT NULL THEN true ELSE false END as "isSaved"
+
         FROM "Job" j
         LEFT JOIN "JobRole" jr ON j."jobRoleId" = jr."id"
         LEFT JOIN "Company" c ON j."companyId" = c."id"
-        LEFT JOIN "Apply" a ON j."id" = a."jobId" AND a."candidateProfileId" = ${currentCandidateProfileId}
+        
+        -- Join Apply Table using parameter $1
+        LEFT JOIN "Apply" a ON j."id" = a."jobId" AND a."candidateProfileId" = $1
+        
+        -- Join SaveJob Table using parameter $2
+        LEFT JOIN "SaveJob" s ON j."id" = s."jobId" AND s."candidateProfileId" = $2
+
         ${whereClause}
+        
         ORDER BY j."postedAt" DESC
-        LIMIT ${limit} OFFSET ${offset}
-    `);
+        LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `,
+            ...mainQueryParams
+        ); // Spread the array into arguments
 
-
-        const totalCountResult: any = await prisma.$queryRawUnsafe(`
+        // 5. Count Query (For Pagination)
+        // We reuse the exact same 'whereClause' and 'queryParams' (excluding limit/offset)
+        const totalCountResult: any = await prisma.$queryRawUnsafe(
+            `
         SELECT COUNT(*)::int as count 
         FROM "Job" j 
         ${whereClause}
-    `);
+    `,
+            ...queryParams
+        );
 
         const totalCount = Number((totalCountResult[0] as any).count);
         const totalPages = Math.ceil(totalCount / limit);
 
         return {
-            job: jobsRaw, // ✅ Perfect JobResponse[]
+            job: jobsRaw,
             totalCount,
             totalPages
         };
@@ -493,6 +544,47 @@ class JobService {
             // 6. Always release lock
             await redisClient.del(lockKey);
             console.log('lock relese: syncViewInDb for job');
+        }
+    }
+
+    public async toggleSaveJob(jobId: number, currentUser: UserPayLoad) {
+        const candidateProfile = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id }
+        });
+
+        if (!candidateProfile) {
+            throw new BadRequestException(`Candidate profile not found for user: ${currentUser.id}`);
+        }
+
+        const existingSave = await prisma.saveJob.findUnique({
+            where: {
+                candidateProfileId_jobId: {
+                    candidateProfileId: candidateProfile.id,
+                    jobId
+                }
+            }
+        });
+
+        if (existingSave) {
+            // 2. IF EXISTS: Delete it (Unsave)
+            await prisma.saveJob.delete({
+                where: {
+                    id: existingSave.id // Or use the composite key again
+                }
+            });
+
+            // Return status to frontend so it can update the UI icon
+            return { message: 'Job unsaved successfully' };
+        } else {
+            // 3. IF NOT EXISTS: Create it (Save)
+            await prisma.saveJob.create({
+                data: {
+                    candidateProfileId: candidateProfile.id,
+                    jobId
+                }
+            });
+
+            return { message: 'Job saved successfully' };
         }
     }
 }

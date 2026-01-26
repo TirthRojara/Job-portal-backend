@@ -58,7 +58,7 @@ model CandidateProfile {
   fullName            String
   gender              Gender
   phone               String                @unique
-  cv                  String
+  cv                  String?
   birthDate           DateTime              @db.Date
   address             String
   openToWork          Boolean               @default(false)
@@ -71,7 +71,7 @@ model CandidateProfile {
   user                User                  @relation(fields: [userId], references: [id])
   CandidateSkill      CandidateSkill[]
   chats               Chat[]
-  // saveJobs            SaveJob[]
+  saveJobs            SaveJob[]
 }
 
 model Language {
@@ -219,18 +219,18 @@ model Job {
   postBy              User         @relation(fields: [postById], references: [id])
   JobBenefit          JobBenefit[]
   JobSkill            JobSkill[]
-  // saveJobs            SaveJob[]
+  saveJobs            SaveJob[]
 }
 
-// model SaveJob {
-//   id                 Int              @id @default(autoincrement())
-//   candidateProfileId Int
-//   jobId              Int
-//   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
-//   job                Job              @relation(fields: [jobId], references: [id])
+model SaveJob {
+  id                 Int              @id @default(autoincrement())
+  candidateProfileId Int
+  jobId              Int
+  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  job                Job              @relation(fields: [jobId], references: [id])
 
-//   @@unique([candidateProfileId, jobId])
-// }
+  @@unique([candidateProfileId, jobId])
+}
 
 model JobSkill {
   jobId   Int

@@ -68,6 +68,13 @@ jobRoute.get(
   asyncWrapper(jobController.getJobView)
 );
 
+jobRoute.post(
+  '/save/:jobId',
+  verifyUser,
+  allowAccess('CANDIDATE'),
+  asyncWrapper(jobController.toggleSaveJob)
+);
+
 
 
 export default jobRoute;

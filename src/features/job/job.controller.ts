@@ -125,6 +125,14 @@ class Jobcontroller {
             data: job
         });
     }
+
+    public async toggleSaveJob(req: Request, res: Response) {
+        const { message } = await jobService.toggleSaveJob(parseInt(req.params.jobId), req.currentUser);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: message
+        });
+    }
 }
 
 export const jobController: Jobcontroller = new Jobcontroller();
