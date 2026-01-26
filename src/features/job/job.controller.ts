@@ -22,15 +22,18 @@ class Jobcontroller {
         // let { page = 1, limit = 5, filter = '', salaryMin = 0, JobStatus = 'ACTIVE' } = req.query;
         let { page = 1, limit = 5, filter = '', salaryMin = 0, location, workplace } = req.query;
 
-        const { job, totalCount, totalPages } = await jobService.readAll({
-            page: parseInt(page as string),
-            limit: parseInt(limit as string),
-            filter: filter as string,
-            salaryMin: parseInt(salaryMin as string),
-            // JobStatus: JobStatus as string
-            location: location as string,
-            workplace: workplace as WorkPlace
-        });
+        const { job, totalCount, totalPages } = await jobService.readAll(
+            {
+                page: parseInt(page as string),
+                limit: parseInt(limit as string),
+                filter: filter as string,
+                salaryMin: parseInt(salaryMin as string),
+                // JobStatus: JobStatus as string
+                location: location as string,
+                workplace: workplace as WorkPlace
+            },
+            req.currentUser
+        );
 
         return res.status(HTTP_STATUS.OK).json({
             message: 'Get all job detail successfully',

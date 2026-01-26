@@ -123,6 +123,14 @@ class AuthController {
             // maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
         });
 
+        res.cookie('role', user.role, {
+            httpOnly: true,
+            secure: true,
+            // secure: false, // only in dev
+            sameSite: 'strict',
+            maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
+        });
+
         const expiresAt = authService.getExpiryDate(refreshTokenExpiry);
         await authService.storeRefreshToken({ userId: user.id, token: refreshToken, expiresAt });
 
@@ -587,6 +595,14 @@ class GoogleAuthController {
             res.cookie('__secure-rtk', refreshToken, {
                 httpOnly: true,
                 secure: true,
+                sameSite: 'strict',
+                maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
+            });
+
+            res.cookie('role', user.role, {
+                httpOnly: true,
+                secure: true,
+                // secure: false, // only in dev
                 sameSite: 'strict',
                 maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
             });

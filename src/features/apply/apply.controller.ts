@@ -7,7 +7,7 @@ class ApplyController {
         const apply = await applyService.create(parseInt(req.params.jobId), req.currentUser);
 
         return res.status(HTTP_STATUS.CREATED).json({
-            message: 'Created job successfully',
+            message: 'Job applied successfully',
             data: apply
         });
     }

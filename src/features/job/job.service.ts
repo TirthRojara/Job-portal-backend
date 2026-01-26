@@ -65,56 +65,140 @@ class JobService {
         return job;
     }
 
-    public async readAll({
-        page,
-        limit,
-        filter,
-        salaryMin,
-        // JobStatus
-        location,
-        workplace
-    }: {
-        page: number;
-        limit: number;
-        filter: string;
-        salaryMin: number;
-        // JobStatus: string | null;
-        location?: string;
-        workplace?: WorkPlace;
-    }) {
-        const additionConditionQuery: any = {
-            salaryMin: { gte: salaryMin },
-            isDeleted: false,
-            status: 'ACTIVE'
-            // location,
-            // workplace
-        };
-
-        if (location && location.trim() !== '') {
-            additionConditionQuery.location = {
-                contains: location,
-                mode: 'insensitive'
-            };
-        }
-
-        if (workplace) {
-            additionConditionQuery.workplace = workplace;
-        }
-
-        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+    public async readAll(
+        {
             page,
             limit,
             filter,
-            filterFields: ['title', 'description', 'responsibilities', 'requirements', 'location'],
-            entity: 'job',
-            // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
-            additionCondition: additionConditionQuery,
-            orderCondition: { postedAt: 'desc' },
-            omit: { postById: true, isDeleted: true, jobRoleId: true, companyId: true },
-            include: { jobRole: true, company: { select: { id: true, name: true } } }
-        });
+            salaryMin,
+            // JobStatus
+            location,
+            workplace
+        }: {
+            page: number;
+            limit: number;
+            filter: string;
+            salaryMin: number;
+            // JobStatus: string | null;
+            location?: string;
+            workplace?: WorkPlace;
+        },
+        currentUser: UserPayLoad
+    ) {
+        // const additionConditionQuery: any = {
+        //     salaryMin: { gte: salaryMin },
+        //     isDeleted: false,
+        //     status: 'ACTIVE'
+        //     // location,
+        //     // workplace
+        // };
 
-        return { job: data, totalCount, totalPages };
+        // if (location && location.trim() !== '') {
+        //     additionConditionQuery.location = {
+        //         contains: location,
+        //         mode: 'insensitive'
+        //     };
+        // }
+
+        // if (workplace) {
+        //     additionConditionQuery.workplace = workplace;
+        // }
+
+        // const { data, totalCount, totalPages } = await getPaginationAndFilter({
+        //     page,
+        //     limit,
+        //     filter,
+        //     filterFields: ['title', 'description', 'responsibilities', 'requirements', 'location'],
+        //     entity: 'job',
+        //     // additionCondition: { salaryMin: { gte: salaryMin }, isDeleted: false, status: JobStatus },
+        //     additionCondition: additionConditionQuery,
+        //     orderCondition: { postedAt: 'desc' },
+        //     omit: { postById: true, isDeleted: true, jobRoleId: true, companyId: true },
+        //     include: { jobRole: true, company: { select: { id: true, name: true } } }
+        // });
+
+        // return { job: data, totalCount, totalPages };
+
+        //======================================================================================================
+        // ✅ RAW SQL for performance optimization && to include isAppliedByUser field
+        //======================================================================================================
+
+        const candidateProfile = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id }
+        });
+        const currentCandidateProfileId = candidateProfile?.id!;
+
+        const offset = (page - 1) * limit;
+
+        let whereClause = `
+        WHERE j."isDeleted" = false 
+        AND j."status" = 'ACTIVE' 
+        AND j."salaryMin" >= ${salaryMin}
+    `;
+
+        if (location && location.trim() !== '') {
+            whereClause += ` AND LOWER(j."location") LIKE '%${location.toLowerCase()}%'`;
+        }
+        if (workplace) {
+            whereClause += ` AND j."workplace" = '${workplace}'`;
+        }
+
+        if (filter) {
+            whereClause += ` AND (
+            LOWER(j."title") LIKE '%${filter.toLowerCase()}%' OR
+            LOWER(j."description") LIKE '%${filter.toLowerCase()}%' OR
+            LOWER(j."responsibilities") LIKE '%${filter.toLowerCase()}%' OR
+            LOWER(j."requirements") LIKE '%${filter.toLowerCase()}%' OR
+            LOWER(j."location") LIKE '%${filter.toLowerCase()}%'
+        )`;
+        }
+
+        // ✅ EXACT JobResponse structure
+        const jobsRaw = await prisma.$queryRawUnsafe(`
+        SELECT 
+            j."id", 
+            j."title", 
+            j."description",
+            j."responsibilities",
+            j."requirements",
+            j."location", 
+            j."workplace", 
+            j."status", 
+            j."salaryMin", 
+            j."salaryMax", 
+            j."postedAt"::text as "postedAt",
+            j."applicationDeadline"::text as "applicationDeadline",
+            j."updateAt"::text as "updateAt",
+            j."totalview",
+            jr."id" as "jobRoleId",
+            jr."name" as "jobRoleName",
+            c."id" as "companyId",
+            c."name" as "companyName",
+            CASE WHEN a."jobId" IS NOT NULL THEN true ELSE false END as "isAppliedByUser"
+        FROM "Job" j
+        LEFT JOIN "JobRole" jr ON j."jobRoleId" = jr."id"
+        LEFT JOIN "Company" c ON j."companyId" = c."id"
+        LEFT JOIN "Apply" a ON j."id" = a."jobId" AND a."candidateProfileId" = ${currentCandidateProfileId}
+        ${whereClause}
+        ORDER BY j."postedAt" DESC
+        LIMIT ${limit} OFFSET ${offset}
+    `);
+
+
+        const totalCountResult: any = await prisma.$queryRawUnsafe(`
+        SELECT COUNT(*)::int as count 
+        FROM "Job" j 
+        ${whereClause}
+    `);
+
+        const totalCount = Number((totalCountResult[0] as any).count);
+        const totalPages = Math.ceil(totalCount / limit);
+
+        return {
+            job: jobsRaw, // ✅ Perfect JobResponse[]
+            totalCount,
+            totalPages
+        };
     }
 
     public async readAllForRecruiter(
