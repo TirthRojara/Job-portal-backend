@@ -225,6 +225,7 @@ model Job {
 model SaveJob {
   id                 Int              @id @default(autoincrement())
   candidateProfileId Int
+  createdAt          DateTime         @default(now())
   jobId              Int
   candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
   job                Job              @relation(fields: [jobId], references: [id])

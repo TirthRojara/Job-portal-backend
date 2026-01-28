@@ -8,9 +8,7 @@ import { jobRoleService } from '../job-role/job-role.service';
 import { PassThrough } from 'stream';
 import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
-import chalk from 'chalk';
 import { jobRedis } from './job.redis';
-import { log } from '~/globals/helpers/log.helper';
 
 class JobService {
     public async create(
@@ -297,7 +295,7 @@ class JobService {
             entity: 'job',
             additionCondition: additionConditionQuery,
             orderCondition: { postedAt: 'desc' },
-            omit: { isDeleted: true, jobRoleId: true, companyId: true },
+            omit: { jobRoleId: true, companyId: true },
             include: { jobRole: true, company: { select: { id: true, name: true } } }
         });
 
@@ -342,21 +340,29 @@ class JobService {
     //   return serializeData(job, dataConfig);
     // }
 
-    public async readOne(id: number, currentUser: UserPayLoad): Promise<Omit<Job, 'totalview'>> {
+    public async readOne(id: number, currentUser: UserPayLoad) {
         // incr views
         jobRedis.INCR_views(currentUser.id, id);
 
         const cacheData = await redisClient.get(RedisKey.JOB.ID(id));
         if (cacheData) return JSON.parse(cacheData);
 
+        let baseOmit = {
+            totalview: true,
+            companyId: true,
+            jobRoleId: true,
+            isDeleted: true
+        };
+
+        const omit = currentUser.role === 'RECRUITER' ? { ...baseOmit, isDeleted: false } : baseOmit;
+
         const job = await prisma.job.findUnique({
             where: { id },
             include: {
-                company: { select: { name: true } },
-                postBy: { select: { name: true } },
-                jobRole: { select: { name: true } }
+                jobRole: true,
+                company: { select: { id: true, name: true } }
             },
-            omit: { totalview: true }
+            omit
         });
 
         if (!job) throw new NotFountException(`Can't find job with id: ${id}`);
@@ -443,6 +449,10 @@ class JobService {
             data: {
                 isDeleted: true
             }
+        });
+
+        await prisma.saveJob.deleteMany({
+            where: { jobId: id }
         });
 
         await redisClient.del(RedisKey.JOB.ME(currentUser.id));
@@ -586,6 +596,170 @@ class JobService {
 
             return { message: 'Job saved successfully' };
         }
+    }
+
+    public async readAllSavedJob({ page, limit }: { page: number; limit: number }, currentUser: UserPayLoad) {
+        // const candidateProfile = await prisma.candidateProfile.findUnique({
+        //     where: { userId: currentUser.id },
+        //     select: { id: true }
+        // });
+        // if (!candidateProfile) throw new BadRequestException('Invalid request');
+        // const { data, totalCount, totalPages } = await getPaginationAndFilter({
+        //     page,
+        //     limit,
+        //     filter: '',
+        //     filterFields: [],
+        //     entity: 'saveJob',
+        //     additionCondition: { candidateProfileId: candidateProfile.id },
+        //     orderCondition: { createdAt: 'desc' },
+        //     select: { jobId: true }
+        // });
+        // const savedJobIds = data.map((item: { jobId: number }) => item.jobId);
+        // const jobs = await prisma.job.findMany({
+        //     where: {
+        //         id: { in: savedJobIds },
+        //         isDeleted: false
+        //     },
+        //     include: {
+        //         company: {
+        //             select: { id: true, name: true }
+        //         },
+        //         jobRole: true,
+        //     },
+        //     omit: { postById: true, isDeleted: true, totalview: true, jobRoleId: true, companyId: true }
+        // });
+        // const orderedJobs = savedJobIds.map((id: number) => jobs.find((job) => job.id === id)!).filter(Boolean);
+        // return { data: orderedJobs, totalCount, totalPages}
+        //
+        //
+        //
+
+        //======================================================================================================
+        // ✅ RAW SQL for performance optimization && to include isAppliedByUser
+        //======================================================================================================
+
+        // 1. Get current candidate ID to prevent SQL injection or logic errors with null
+
+        const candidateProfile = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id },
+            select: { id: true }
+        });
+
+        if (!candidateProfile) throw new BadRequestException('Candidate profile not found');
+
+        const currentCandidateProfileId = candidateProfile.id;
+        const offset = (page - 1) * limit;
+
+        // 2. Fetch Saved Jobs with Details & Applied Status
+        // We use $queryRaw (tagged template literal) which automatically escapes parameters
+        // const jobsRaw = await prisma.$queryRaw`
+        //     SELECT
+        //         j."id",
+        //         j."title",
+        //         j."description",
+        //         j."responsibilities",
+        //         j."requirements",
+        //         j."location",
+        //         j."workplace",
+        //         j."status",
+        //         j."salaryMin",
+        //         j."salaryMax",
+        //         j."postedAt"::text as "postedAt",
+        //         j."applicationDeadline"::text as "applicationDeadline",
+        //         j."updateAt"::text as "updateAt",
+
+        //         -- Job Role & Company Details
+        //         jr."id" as "jobRoleId",
+        //         jr."name" as "jobRoleName",
+        //         c."id" as "companyId",
+        //         c."name" as "companyName",
+
+        //         -- Check if Applied (Left Join on Apply table for this specific user)
+        //         CASE WHEN a."jobId" IS NOT NULL THEN true ELSE false END as "isAppliedByUser"
+
+        //         -- We select the Saved Date just in case you need it, and for ordering logic
+        //         -- s."createdAt" as "savedAt"
+
+        //     FROM "SaveJob" s
+        //     JOIN "Job" j ON s."jobId" = j."id"
+        //     LEFT JOIN "JobRole" jr ON j."jobRoleId" = jr."id"
+        //     LEFT JOIN "Company" c ON j."companyId" = c."id"
+
+        //     -- Join Apply Table to check if the user has applied to this saved job
+        //     LEFT JOIN "Apply" a ON j."id" = a."jobId" AND a."candidateProfileId" = ${currentCandidateProfileId}
+
+        //     WHERE s."candidateProfileId" = ${currentCandidateProfileId}
+        //     AND j."isDeleted" = false
+
+        //     -- Order by when the job was saved (Most recent save first)
+        //     ORDER BY s."createdAt" DESC
+        //     LIMIT ${limit} OFFSET ${offset}
+        // `;
+
+        const jobsRaw = await prisma.$queryRaw`
+            SELECT 
+                j."id", 
+                j."title", 
+                j."description",
+                j."responsibilities",
+                j."requirements",
+                j."location", 
+                j."workplace", 
+                j."status", 
+                j."salaryMin", 
+                j."salaryMax", 
+                j."postedAt"::text as "postedAt",
+                j."applicationDeadline"::text as "applicationDeadline",
+                j."updateAt"::text as "updateAt",
+                
+                -- Job Role & Company Details
+                jr."id" as "jobRoleId",
+                jr."name" as "jobRoleName",
+                c."id" as "companyId",
+                c."name" as "companyName",
+                
+                -- Check if Applied
+                CASE WHEN a."jobId" IS NOT NULL THEN true ELSE false END as "isAppliedByUser",
+
+                -- ✅ ADDED: Mark as saved
+                -- Since we are querying the SaveJob table directly, this is always true
+                true as "isSaved"
+                
+                -- s."createdAt" as "savedAt"
+
+            FROM "SaveJob" s
+            JOIN "Job" j ON s."jobId" = j."id"
+            LEFT JOIN "JobRole" jr ON j."jobRoleId" = jr."id"
+            LEFT JOIN "Company" c ON j."companyId" = c."id"
+            
+            -- Join Apply Table
+            LEFT JOIN "Apply" a ON j."id" = a."jobId" AND a."candidateProfileId" = ${currentCandidateProfileId}
+
+            WHERE s."candidateProfileId" = ${currentCandidateProfileId}
+            AND j."isDeleted" = false
+
+            ORDER BY s."createdAt" DESC
+            LIMIT ${limit} OFFSET ${offset}
+        `;
+
+        // 3. Count Query (For Pagination)
+        // We count rows in SaveJob that link to valid non-deleted jobs
+        const totalCountResult: any = await prisma.$queryRaw`
+            SELECT COUNT(*)::int as count 
+            FROM "SaveJob" s
+            JOIN "Job" j ON s."jobId" = j."id"
+            WHERE s."candidateProfileId" = ${currentCandidateProfileId}
+            AND j."isDeleted" = false
+        `;
+
+        const totalCount = Number((totalCountResult[0] as any).count);
+        const totalPages = Math.ceil(totalCount / limit);
+
+        return {
+            data: jobsRaw,
+            totalCount,
+            totalPages
+        };
     }
 }
 

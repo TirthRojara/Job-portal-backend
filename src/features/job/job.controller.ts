@@ -121,7 +121,7 @@ class Jobcontroller {
         const job = await jobService.getJobView(parseInt(req.params.jobId), req.currentUser);
 
         return res.status(HTTP_STATUS.OK).json({
-            message: 'get job views successfully',
+            message: 'Get job views successfully',
             data: job
         });
     }
@@ -131,6 +131,25 @@ class Jobcontroller {
 
         return res.status(HTTP_STATUS.OK).json({
             message: message
+        });
+    }
+
+    public async readAllSavedJob(req: Request, res: Response) {
+        let { page = 1, limit = 5 } = req.query;
+
+        const { data, totalCount, totalPages } = await jobService.readAllSavedJob(
+            { page: parseInt(page as string), limit: parseInt(limit as string) },
+            req.currentUser
+        );
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get Saved Jobs Successfully.',
+            pagination: {
+                totalCount,
+                currentPage: page,
+                totalPages
+            },
+            data
         });
     }
 }

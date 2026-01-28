@@ -1,33 +1,6 @@
 import Redis from 'ioredis';
 import { log } from '~/globals/helpers/log.helper';
 
-// const redisClient = new Redis()
-
-// export default redisClient;
-
-// const config = {
-//     host: process.env.REDIS_HOST || 'localhost',
-//     port: parseInt(process.env.REDIS_PORT || '6379'),
-//     maxRetriesPerRequest: 1, // Fail fast! Don't wait long if Redis is down
-//     lazyConnect: true, // ✅ Key Fix: Don't crash app on startup
-//     retryStrategy: (times: any) => {
-//         // ✅ Key Fix: Retry forever in background, but don't crash
-//         // Wait 2s between retries, capping at 30s
-//         const delay = Math.min(times * 50, 2000);
-//         return delay;
-//     }
-// };
-
-// // Eager publisher (immediate connect)
-// const redisPublisher = new Redis(config);
-
-// // Lazy subscriber (connects on first subscribe())
-// // const redisSubscriber = new Redis({ ...config, lazyConnect: true });
-// const redisSubscriber = new Redis(config);
-
-// // Eager cache client
-// const redisClient = new Redis(config);
-
 const baseConfig = {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379')
@@ -55,37 +28,33 @@ const cacheConfig = {
     retryStrategy: () => 1000 * 60 * 10 // for development
 };
 
-const redisClient = new Redis(cacheConfig);
+const _redisClient = new Redis(cacheConfig);
 
-// 👇 GLOBAL ERROR HANDLER INTERCEPTOR 👇
-// We save the original methods
-const originalGet = redisClient.get.bind(redisClient);
-const originalSet = redisClient.set.bind(redisClient);
+// 👇 GLOBAL ERROR HANDLER INTERCEPTOR VIA PROXY 👇
+const redisClient = new Proxy(_redisClient, {
+    get(target, prop: string | symbol) {
+        const value = Reflect.get(target, prop);
 
-// Overwrite .get()
-redisClient.get = (async (...args: any[]) => {
-    try {
-        // 👇 FIX: Cast originalGet to 'any' so it accepts the spread array
-        return await (originalGet as any)(...args);
-    } catch (error) {
-        log.warn('Redis server is down.');
-        return null;
+        // If accessing a function (like .get, .set, .sadd), wrap it
+        if (typeof value === 'function') {
+            return async (...args: any[]) => {
+                try {
+                    // Call the original Redis method
+                    return await value.apply(target, args);
+                } catch (error: any) {
+                    // Swallow the "Stream isn't writable" error
+                    log.warn(`Redis error on command "${String(prop)}": ${error.message}`);
+                    return null; // Return null to fallback to DB
+                }
+            };
+        }
+
+        return value;
     }
-}) as any;
+});
 
-// Overwrite .set()
-redisClient.set = (async (...args: any[]) => {
-    try {
-        // 👇 FIX: Cast originalSet to 'any'
-        return await (originalSet as any)(...args);
-    } catch (error) {
-        log.warn('Redis server is down.');
-        return 'OK';
-    }
-}) as any;
 
-// Add error handlers to prevent crashes
-[redisPublisher, redisSubscriber, redisClient].forEach((client, i) => {
+[redisPublisher, redisSubscriber, _redisClient].forEach((client, i) => {
     client.on('error', (err) => {
         console.error(`Redis client ${i} error:`, err.message);
         // Graceful fallback: e.g., skip cache, use DB
