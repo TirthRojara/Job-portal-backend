@@ -11,15 +11,15 @@ import { RedisKey } from '~/globals/constants/redis.constant';
 
 class ApplyService {
     // candidate apply for a job
-    public async create(jobId: number, currentUser: UserPayLoad): Promise<Apply> {
+    public async create(jobId: number, currentUser: UserPayLoad) {
         const candidateProfile = await candidateProfileService.readOne(currentUser.id);
         // await jobService.readOne(jobId);
         const job = await jobService.findOneActive(jobId);
-        // const alreadyApply = await this.findCandidateWithJobId(candidateProfile.id, jobId);
+        const alreadyApply = await this.findCandidateWithJobId(candidateProfile.id, jobId);
 
-        // if (alreadyApply) {
-        //     throw new BadRequestException(`You can't apply to the same job`);
-        // }
+        if (alreadyApply !== null) {
+            throw new BadRequestException(`You can't apply to the same job again.`);
+        }
 
         const fullApply = await prisma.apply.create({
             data: {
@@ -148,7 +148,9 @@ class ApplyService {
             filterFields: [],
             entity: 'apply',
             additionCondition: { candidateProfileId: condidateProfile.id },
-            orderCondition: { applyDate: 'desc' }
+            orderCondition: { applyDate: 'desc' },
+            include: { company: { select: { id: true, name: true } }, job: { select: { id: true, title: true } } },
+            omit: { companyId: true, jobId: true }
         });
 
         const isPaginationExist = await redisClient.exists(
@@ -172,7 +174,7 @@ class ApplyService {
                     RedisKey.APPLY.READ_MY_APPLICATION_CANDIDATE_PAGINATION(currentUser.id),
                     JSON.stringify(totalCount),
                     'EX',
-                    7200  // 2 hour
+                    7200 // 2 hour
                 );
             }
         }
@@ -290,6 +292,7 @@ class ApplyService {
         const isPaginationExist = await redisClient.exists(
             RedisKey.APPLY.READ_MY_APPLICATION_RECRUITER_PAGINATION(job.id, job.companyId)
         );
+
         const isExist = await redisClient.exists(RedisKey.APPLY.READ_MY_APPLICATION_RECRUITER(job.id, job.companyId));
         if (!isExist && !isPaginationExist) {
             const rows = await prisma.apply.findMany({
@@ -336,7 +339,7 @@ class ApplyService {
     }
 
     // private method
-    public async findCandidateWithJobId(candidateProfileId: number, jobId: number): Promise<Apply> {
+    public async findCandidateWithJobId(candidateProfileId: number, jobId: number): Promise<Apply | null> {
         const apply = await prisma.apply.findFirst({
             where: {
                 candidateProfileId,
@@ -344,7 +347,7 @@ class ApplyService {
             }
         });
 
-        if (!apply) throw new NotFountException(`Can't find application`);
+        // if (!apply) throw new NotFountException(`Can't find application`);
 
         return apply;
     }

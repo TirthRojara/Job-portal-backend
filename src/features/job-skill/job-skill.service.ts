@@ -6,13 +6,19 @@ import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
 
 class JobSkillService {
-    public async create(jobId: number, skillId: number, currentUser: UserPayLoad): Promise<JobSkill> {
+    public async create(jobId: number, skillId: number, currentUser: UserPayLoad) {
         await jobService.findJobByUser(jobId, currentUser.id);
 
         const jobSkill = await prisma.jobSkill.create({
             data: {
                 jobId,
                 skillId
+            },
+            select: {
+                jobId: true,
+                skill: {
+                    select: { id: true, name: true }
+                }
             }
         });
 

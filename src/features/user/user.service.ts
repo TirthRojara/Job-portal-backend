@@ -165,6 +165,17 @@ class UserService {
             select: { id: true, email: true, name: true, role: true, authType: true }
         });
 
+        if (user?.role === 'RECRUITER') {
+            const company = await prisma.company.findMany({
+                where: { userId: user.id },
+                select: { id: true, name: true }
+            });
+
+            const recruiter = { ...user, companyId: company[0].id };
+
+            return recruiter;
+        }
+
         return user;
     }
 }

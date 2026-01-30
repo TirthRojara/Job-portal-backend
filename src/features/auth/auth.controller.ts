@@ -407,11 +407,27 @@ class AuthController {
         const userId = req.currentUser.id;
         const refreshToken = req.cookies['__secure-rtk'];
 
-        res.clearCookie('__secure-rtk');
+        // res.clearCookie('__secure-rtk');
+
+        res.clearCookie('__secure-rtk', {
+            httpOnly: true,
+            secure: true, // ← Match this
+            sameSite: 'strict', // ← Match this
+            path: '/' // ← Add this (defaults to current path)
+        });
+
+        res.clearCookie('role', {
+            httpOnly: true,
+            secure: true, // ← Match this
+            sameSite: 'strict', // ← Match this
+            path: '/' // ← Add this
+        });
 
         await prisma.refreshToken.delete({
             where: { token: refreshToken, userId }
         });
+
+        console.log('Log out in controller');
 
         return res.status(HTTP_STATUS.OK).json({
             message: 'Logout successfully'
