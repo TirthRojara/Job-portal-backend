@@ -18,13 +18,21 @@ class CandidateProfileService {
         // const { fullName, gender, phone, cv, birthDate, address } = requestBody;
         const { birthDate, openToWork, ...rest } = requestBody;
 
-        const cvURL = file[0].filename;
-        //  const cvURL = file && file.length > 0 ? file[0].filename : undefined;
+        // const cvURL = file[0].filename || undefined;
+
+        const isExitsProfile = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id },
+            select: { id: true }
+        });
+
+        if (isExitsProfile) {
+            throw new BadRequestException('Alreay profile created.');
+        }
 
         const candidateProfile = await prisma.candidateProfile.create({
             data: {
                 ...rest,
-                cv: cvURL,
+                // cv: cvURL,
                 birthDate: new Date(birthDate),
                 userId: currentUser.id,
                 openToWork: Boolean(openToWork)
@@ -102,7 +110,7 @@ class CandidateProfileService {
                 deleteCV(oldCV.cv);
             }
 
-            await redisClient.del(RedisKey.USER.CANDIDATE.RESUME(id))
+            await redisClient.del(RedisKey.USER.CANDIDATE.RESUME(id));
             await redisClient.del(RedisKey.USER.CANDIDATE.PROFILE(id));
 
             return profileUpdate;
@@ -162,7 +170,7 @@ class CandidateProfileService {
         const resumePath = await this.getResume(candidate.id);
 
         redisClient.set(RedisKey.USER.CANDIDATE.RESUME(currentUser.id), resumePath, 'EX', 7200);
-        
+
         return resumePath;
     }
 
@@ -185,7 +193,7 @@ class CandidateProfileService {
         const resumePath = await this.getResume(candidateId);
 
         redisClient.set(RedisKey.USER.CANDIDATE.RESUME(candidateId), resumePath, 'EX', 7200);
-        
+
         return resumePath;
     }
 }

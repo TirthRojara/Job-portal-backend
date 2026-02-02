@@ -7,7 +7,10 @@ import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
 
 class CandidateLanguageService {
-    public async create(requestBody: ICandidateLanguageCreate, currentUser: UserPayLoad): Promise<CandidateLanguage> {
+    public async create(
+        requestBody: ICandidateLanguageCreate,
+        currentUser: UserPayLoad
+    ): Promise<Omit<CandidateLanguage, 'candidateProfileId'>> {
         const { languageName, level } = requestBody;
 
         const candidateProfile: CandidateProfile = await candidateProfileService.readOne(currentUser.id);
@@ -17,7 +20,8 @@ class CandidateLanguageService {
                 candidateProfileId: candidateProfile.id,
                 languageName,
                 level
-            }
+            },
+            omit: { candidateProfileId: true }
         });
 
         await redisClient.del(RedisKey.USER.CANDIDATE_LANGUAGE(currentUser.id));
@@ -30,14 +34,15 @@ class CandidateLanguageService {
         return candidateLanguage;
     }
 
-    public async readMyLanguage(currentUser: UserPayLoad) {
+    public async readMyLanguage(currentUser: UserPayLoad): Promise<Omit<CandidateLanguage, 'candidateProfileId'>[]> {
         const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE_LANGUAGE(currentUser.id));
         if (cacheData) return JSON.parse(cacheData);
 
         const candidateProfile: CandidateProfile = await candidateProfileService.readOne(currentUser.id);
 
-        const candidateLanguage: CandidateLanguage[] = await prisma.candidateLanguage.findMany({
-            where: { candidateProfileId: candidateProfile.id }
+        const candidateLanguage = await prisma.candidateLanguage.findMany({
+            where: { candidateProfileId: candidateProfile.id },
+            omit: { candidateProfileId: true }
         });
 
         if (!candidateLanguage || candidateLanguage.length === 0)
@@ -53,7 +58,11 @@ class CandidateLanguageService {
         return candidateLanguage;
     }
 
-    public async updateLevel(currentUser: UserPayLoad, languageName: string, level: Level): Promise<CandidateLanguage> {
+    public async updateLevel(
+        currentUser: UserPayLoad,
+        languageName: string,
+        level: Level
+    ): Promise<Omit<CandidateLanguage, 'candidateProfileId'>> {
         const candidateProfile: CandidateProfile = await candidateProfileService.readOne(currentUser.id);
 
         const candidateLanguage = await prisma.candidateLanguage.update({
@@ -63,7 +72,8 @@ class CandidateLanguageService {
                     languageName
                 }
             },
-            data: { level }
+            data: { level },
+            omit: { candidateProfileId: true }
         });
 
         await redisClient.del(RedisKey.USER.CANDIDATE_LANGUAGE(currentUser.id));

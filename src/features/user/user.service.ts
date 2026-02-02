@@ -176,7 +176,20 @@ class UserService {
             return recruiter;
         }
 
-        return user;
+        if (user?.role === 'CANDIDATE') {
+            const candidateProfile = await prisma.candidateProfile.findUnique({
+                where: { userId: user.id},
+                select: { id: true}
+            })
+
+            console.log({candidateProfile})
+
+            const candidate = {...user, candidateProfileId: candidateProfile?.id || null}
+
+            return candidate
+        }
+
+        // return user;
     }
 }
 

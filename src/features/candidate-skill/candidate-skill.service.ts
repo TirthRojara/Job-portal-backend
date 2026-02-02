@@ -30,7 +30,7 @@ class CandidateSkillService {
         return skill;
     }
 
-    public async create(skillId: any, currentUser: UserPayLoad): Promise<CandidateSkill> {
+    public async create(skillId: any, currentUser: UserPayLoad): Promise<IreadMySkill> {
         const candidateProfile = await candidateProfileService.readOne(currentUser.id);
         await this.findSkill(skillId);
 
@@ -38,6 +38,9 @@ class CandidateSkillService {
             data: {
                 candidateProfileId: candidateProfile.id,
                 skillId
+            },
+            select: {
+                skill: { select: { id: true, name: true } }
             }
         });
 
@@ -90,7 +93,12 @@ class CandidateSkillService {
             throw new NotFountException('No skills found for this candidate');
         }
 
-        redisClient.set(RedisKey.USER.CANDIDATE_SKILL(userId), JSON.stringify(candidateProfileIdWithSkill.CandidateSkill), 'EX', 7200)
+        redisClient.set(
+            RedisKey.USER.CANDIDATE_SKILL(userId),
+            JSON.stringify(candidateProfileIdWithSkill.CandidateSkill),
+            'EX',
+            7200
+        );
 
         return candidateProfileIdWithSkill.CandidateSkill;
     }
@@ -108,7 +116,7 @@ class CandidateSkillService {
             }
         });
 
-        await redisClient.del(RedisKey.USER.CANDIDATE_SKILL(userId))
+        await redisClient.del(RedisKey.USER.CANDIDATE_SKILL(userId));
     }
 }
 

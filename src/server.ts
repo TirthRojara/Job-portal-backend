@@ -73,7 +73,7 @@ class Server {
         //rate limiter
         const limiter = rateLimit({
             windowMs: 1 * 60 * 1000, // 15 minutes
-            limit: 50, // Limit each IP to 50 requests per `window` (here, per 15 minutes).
+            limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
             standardHeaders: 'draft-8',
             legacyHeaders: false,
             ipv6Subnet: 56,
