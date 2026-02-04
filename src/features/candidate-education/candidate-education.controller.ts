@@ -51,7 +51,6 @@ class CandidateEducationController {
 
     return res.status(HTTP_STATUS.OK).json({
       message: 'Delete my candidate education successfully',
-      data: candidateEducation
     });
   }
 }

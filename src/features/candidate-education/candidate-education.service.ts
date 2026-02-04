@@ -135,6 +135,7 @@ class CandidateEducationService {
 
     public async remove(id: number, currentUser: UserPayLoad): Promise<void> {
         const candidateProfile = await candidateProfileService.readOne(currentUser.id);
+
         await prisma.candidateEducation.delete({
             where: { id, candidateProfileId: candidateProfile.id }
         });

@@ -146,13 +146,15 @@ class CandidateProfileService {
 
         if (!candidate) throw new BadRequestException('Candidate does not have resume');
 
+        if (!candidate.cv) throw new NotFountException('Candidate does not have resume');
+
         const resumePath = path.join(__dirname, '../../../uploads/candidate-cv', `${candidate.cv}`);
 
         try {
             await fs.access(resumePath, fs.constants.F_OK);
             return resumePath;
         } catch (error) {
-            throw new BadRequestException(`Resume not found, ${error}`);
+            throw new BadRequestException(`Resume not found`);
         }
     }
 
