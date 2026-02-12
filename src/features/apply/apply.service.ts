@@ -233,60 +233,36 @@ class ApplyService {
             entity: 'apply',
             additionCondition: { jobId: job.id },
             orderCondition: { applyDate: 'desc' },
-            include: {},
-            select: {
-                applyDate: true,
-                status: true,
-                // jobId: true,
-                candidateProfile: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                        gender: true,
-                        phone: true,
-                        cv: true,
-                        birthDate: true,
-                        address: true,
-                        userId: true
-                    }
-                }
-            }
+            include: {
+                candidateProfile: { select: { id: true, fullName: true, summary: true, address: true } },
+                job: { select: { id: true, title: true } }
+            },
+            omit: { jobId: true, candidateProfileId: true }
+            // select: {
+            //     applyDate: true,
+            //     status: true,
+            //     // jobId: true,
+            //     candidateProfile: {
+            //         select: {
+            //             id: true,
+            //             fullName: true,
+            //             gender: true,
+            //             phone: true,
+            //             cv: true,
+            //             birthDate: true,
+            //             address: true,
+            //             userId: true
+            //         }
+            //     }
+            // }
         });
 
         // await prisma.apply.findMany({
-        //   where: { jobId: job.id },
-        //   include: {
-        //     candidateProfile: {
-        //       select: {
-        //         id: true,
-        //         fullName: true,
-        //         gender: true,
-        //         phone: true,
-        //         cv: true,
-        //         birthDate: true,
-        //         address: true
-        //       }
+        //     where: { jobId: job.id },
+        //     include: {
+        //         candidateProfile: { select: { id: true, fullName: true, summary: true, address: true } },
+        //         job: { select: { id: true, title: true } }
         //     }
-        //   }
-        // });
-        // await prisma.apply.findMany({
-        //   where: { jobId: job.id },
-        //   select: {
-        //     applyDate: true,
-        //     status: true,
-        //     jobId: true,
-        //     candidateProfile: {
-        //       select: {
-        //         id: true,
-        //         fullName: true,
-        //         gender: true,
-        //         phone: true,
-        //         cv: true,
-        //         birthDate: true,
-        //         address: true
-        //       }
-        //     }
-        //   }
         // });
 
         const isPaginationExist = await redisClient.exists(

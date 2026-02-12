@@ -1,10 +1,10 @@
 import { Express, NextFunction, Request, Response } from 'express';
 import { candidateProfileService } from './candidate-profile.service';
 import HTTP_STATUS from '~/globals/constants/http.constant';
+import path from 'path';
 
 class CandidateProfileController {
     public async create(req: Request, res: Response, next: NextFunction) {
-
         console.log('req.files =', req.files);
 
         const candidateProfile = await candidateProfileService.create(
@@ -71,6 +71,14 @@ class CandidateProfileController {
 
     public async viewResumeForCandidate(req: Request, res: Response) {
         const resumePath = await candidateProfileService.viewResumeForCandidate(req.currentUser);
+
+        const backendFileName = path.basename(resumePath);
+        const fileName = backendFileName.replace(/^\d+-\d+-/, '');
+
+        res.setHeader('Content-Type', 'application/pdf');
+        // res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+        res.setHeader('Content-Disposition', `${fileName}`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
         return res.sendFile(resumePath);
     }

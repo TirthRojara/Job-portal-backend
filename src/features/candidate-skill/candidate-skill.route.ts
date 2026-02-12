@@ -26,6 +26,13 @@ candidateSkillRoute.get(
 );
 
 candidateSkillRoute.get(
+    `/:jobId/:candidateProfileId`,
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(candidateSkillController.readSkillById)
+);
+
+candidateSkillRoute.get(
     '/me',
     verifyUser,
     allowAccess('CANDIDATE'),

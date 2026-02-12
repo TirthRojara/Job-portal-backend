@@ -1,6 +1,6 @@
 import { CandidateSkill, Skill } from '@prisma/client';
 import prisma from '~/prisma';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { IreadAllCandidateSkillz, IreadMySkill } from './candidate-skill.interface';
 import { candidateProfileService } from '../candidate-profile/candidate-profile.service';
 import { redisClient } from '~/globals/cores/redis/redis.client';
@@ -99,6 +99,36 @@ class CandidateSkillService {
             'EX',
             7200
         );
+
+        return candidateProfileIdWithSkill.CandidateSkill;
+    }
+
+    public async readSkillById(candidateProfileId: number, jobId: number, currentUser: UserPayLoad) {
+        const apply = await prisma.apply.findFirst({
+            where: { jobId, candidateProfileId }
+        });
+
+        if (!apply) throw new ForbiddenException(`You don't have access.`);
+
+        const candidateProfileIdWithSkill = await prisma.candidateProfile.findUnique({
+            where: { id: candidateProfileId },
+            select: {
+                CandidateSkill: {
+                    select: {
+                        // candidateProfileId: true,
+                        skill: { select: { id: true, name: true } }
+                    }
+                }
+            }
+        });
+
+        if (!candidateProfileIdWithSkill) {
+            throw new NotFountException('Candidate profile not found');
+        }
+
+        if (candidateProfileIdWithSkill.CandidateSkill.length === 0) {
+            throw new NotFountException('No skills found for this candidate');
+        }
 
         return candidateProfileIdWithSkill.CandidateSkill;
     }

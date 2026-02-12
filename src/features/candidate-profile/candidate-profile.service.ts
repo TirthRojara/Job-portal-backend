@@ -52,7 +52,7 @@ class CandidateProfileService {
         const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.PROFILE(id));
         if (cacheData) return JSON.parse(cacheData);
 
-        const candidate: CandidateProfile | null = await prisma.candidateProfile.findUnique({
+        const candidate = await prisma.candidateProfile.findUnique({
             where: { userId: id }
         });
 
@@ -67,7 +67,7 @@ class CandidateProfileService {
         const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.PROFILE(id));
         if (cacheData) return JSON.parse(cacheData);
 
-        const candidate: CandidateProfile | null = await prisma.candidateProfile.findUnique({
+        const candidate = await prisma.candidateProfile.findUnique({
             where: { id }
         });
 

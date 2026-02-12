@@ -16,7 +16,7 @@ export const candidateProfile_Update_Schema = Joi.object({
     gender: Joi.string().optional(),
     summary: Joi.string().optional(),
     phone: Joi.string().optional(),
-    // cv: Joi.string().optional(),
+    cv: Joi.string().optional(),
     birthDate: Joi.date().optional(),
     address: Joi.string().optional(),
     openToWork: Joi.boolean().optional()
