@@ -9,26 +9,33 @@ import { candidateEducationCreateSchema, candidateEducationUpdateSchema } from '
 const candidateEducationRoute = express.Router();
 
 candidateEducationRoute.post(
-  '/me',
-  verifyUser,
-  validateSchema(candidateEducationCreateSchema),
-  asyncWrapper(candidateEducationController.create)
+    '/me',
+    verifyUser,
+    validateSchema(candidateEducationCreateSchema),
+    asyncWrapper(candidateEducationController.create)
 );
 
 candidateEducationRoute.get(
-  '/readAll',
-  verifyUser,
-  allowAccess('ADMIN'),
-  asyncWrapper(candidateEducationController.readAll)
+    '/readAll',
+    verifyUser,
+    allowAccess('ADMIN'),
+    asyncWrapper(candidateEducationController.readAll)
 );
 
 candidateEducationRoute.get('/me', verifyUser, asyncWrapper(candidateEducationController.readMyEducation));
 
+candidateEducationRoute.get(
+    `/:jobId/:candidateProfileId`,
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(candidateEducationController.readEducationById)
+);
+
 candidateEducationRoute.patch(
-  '/me/:id',
-  verifyUser,
-  validateSchema(candidateEducationUpdateSchema),
-  asyncWrapper(candidateEducationController.update)
+    '/me/:id',
+    verifyUser,
+    validateSchema(candidateEducationUpdateSchema),
+    asyncWrapper(candidateEducationController.update)
 );
 
 candidateEducationRoute.delete('/me/:id', verifyUser, asyncWrapper(candidateEducationController.remove));

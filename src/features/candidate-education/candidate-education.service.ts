@@ -1,7 +1,7 @@
 import prisma from '~/prisma';
 import { candidateProfileService } from '../candidate-profile/candidate-profile.service';
 import { CandidateEducation, Education } from '@prisma/client';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { ICandidateEducationCreate, ICandidateEducationUpdate } from './candidate-education.interface';
 import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
@@ -101,6 +101,31 @@ class CandidateEducationService {
             .catch((err) => console.error('Redis cache error:', err));
 
         return candidateProfileWithEducation.CandidateEducation;
+    }
+
+    public async readEducationById(candidateProfileId: number, jobId: number, currentUser: UserPayLoad) {
+        const apply = await prisma.apply.findFirst({
+            where: { jobId, candidateProfileId }
+        });
+
+        if (!apply) throw new ForbiddenException(`You don't have access.`);
+
+        const candidateEducation = await prisma.candidateProfile.findUnique({
+            where: { id: candidateProfileId },
+            include: {
+                CandidateEducation: { include: { education: true } }
+            }
+        });
+
+        if (!candidateEducation) {
+            throw new NotFountException(`Candidate profile with User ID: ${currentUser.id} not found`);
+        }
+
+        if (candidateEducation.CandidateEducation.length === 0) {
+            throw new NotFountException(`No education records found for candidate with User ID: ${currentUser.id}`);
+        }
+
+        return candidateEducation.CandidateEducation;
     }
 
     public async update(

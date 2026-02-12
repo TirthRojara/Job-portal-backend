@@ -2,7 +2,7 @@ import { CandidateLanguage, CandidateProfile, Level } from '@prisma/client';
 import { candidateProfileService } from '../candidate-profile/candidate-profile.service';
 import prisma from '~/prisma';
 import { ICandidateLanguageCreate } from './candidate-language.interface';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
 
@@ -54,6 +54,24 @@ class CandidateLanguageService {
             'EX',
             7200
         );
+
+        return candidateLanguage;
+    }
+
+    public async readLanguageById(candidateProfileId: number, jobId: number) {
+        const apply = await prisma.apply.findFirst({
+            where: { jobId, candidateProfileId }
+        });
+
+        if (!apply) throw new ForbiddenException(`You don't have access.`);
+
+        const candidateLanguage = await prisma.candidateLanguage.findMany({
+            where: { candidateProfileId },
+            omit: { candidateProfileId: true }
+        });
+
+        if (!candidateLanguage || candidateLanguage.length === 0)
+            throw new NotFountException(`No language records found for candidate`);
 
         return candidateLanguage;
     }

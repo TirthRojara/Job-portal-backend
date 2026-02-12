@@ -2,7 +2,7 @@ import prisma from '~/prisma';
 import { candidateProfileService } from '../candidate-profile/candidate-profile.service';
 import { ICandidateExperience } from './candidate-experience.interface';
 import { CandidateExperience } from '@prisma/client';
-import { NotFountException } from '~/globals/cores/error.cores';
+import { ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { redisClient } from '~/globals/cores/redis/redis.client';
 import { RedisKey } from '~/globals/constants/redis.constant';
 
@@ -21,7 +21,7 @@ class CandidateExperienceService {
             }
         });
 
-        await redisClient.del(RedisKey.USER.CANDIDATE_EXPERIENCE(userId))
+        await redisClient.del(RedisKey.USER.CANDIDATE_EXPERIENCE(userId));
 
         return candidateExperience;
     }
@@ -33,7 +33,7 @@ class CandidateExperienceService {
     }
 
     public async readMyExperience(userId: number): Promise<CandidateExperience[]> {
-        const cacheData =await redisClient.get(RedisKey.USER.CANDIDATE_EXPERIENCE(userId));
+        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE_EXPERIENCE(userId));
         if (cacheData) return JSON.parse(cacheData) as CandidateExperience[];
 
         const candidateProfile = await candidateProfileService.readOne(userId);
@@ -48,6 +48,22 @@ class CandidateExperienceService {
             throw new NotFountException(`No experience records found for candidate with User ID: ${userId}`);
 
         redisClient.set(RedisKey.USER.CANDIDATE_EXPERIENCE(userId), JSON.stringify(candidateExperience), 'EX', 7200);
+
+        return candidateExperience;
+    }
+
+    public async readExperienceById(candidateProfileId: number, jobId: number) {
+        const apply = await prisma.apply.findFirst({
+            where: { jobId, candidateProfileId }
+        });
+
+        if (!apply) throw new ForbiddenException(`You don't have access.`);
+
+        const candidateExperience = await prisma.candidateExperience.findMany({
+            where: {
+                candidateProfileId
+            }
+        });
 
         return candidateExperience;
     }
@@ -80,7 +96,7 @@ class CandidateExperienceService {
             }
         });
 
-        await redisClient.del(RedisKey.USER.CANDIDATE_EXPERIENCE(userId))
+        await redisClient.del(RedisKey.USER.CANDIDATE_EXPERIENCE(userId));
 
         return candidateExperience;
     }
@@ -92,7 +108,7 @@ class CandidateExperienceService {
             where: { id_candidateProfileId: { id, candidateProfileId: findCadidateExperience.candidateProfileId } }
         });
 
-        await redisClient.del(RedisKey.USER.CANDIDATE_EXPERIENCE(userId))
+        await redisClient.del(RedisKey.USER.CANDIDATE_EXPERIENCE(userId));
     }
 }
 

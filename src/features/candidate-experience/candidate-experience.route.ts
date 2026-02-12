@@ -30,6 +30,13 @@ candidateExperienceRoute.get(
     asyncWrapper(candidateExperienceController.readMyExperience)
 );
 
+candidateExperienceRoute.get(
+    `/:jobId/:candidateProfileId`,
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(candidateExperienceController.readExperienceById)
+);
+
 candidateExperienceRoute.patch(
     '/me/:id',
     verifyUser,

@@ -30,6 +30,13 @@ candidateLanguageRoute.get(
     asyncWrapper(candidateLanguageController.readMyLanguage)
 );
 
+candidateLanguageRoute.get(
+    `/:jobId/:candidateProfileId`,
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(candidateLanguageController.readLanguageById)
+);
+
 candidateLanguageRoute.patch(
     '/me/:languageName',
     verifyUser,

@@ -3,56 +3,69 @@ import { candidateEducationService } from './candidate-education.service';
 import HTTP_STATUS from '~/globals/constants/http.constant';
 
 class CandidateEducationController {
-  public async create(req: Request, res: Response) {
-    const candidateEducation = await candidateEducationService.create(req.body, req.currentUser);
+    public async create(req: Request, res: Response) {
+        const candidateEducation = await candidateEducationService.create(req.body, req.currentUser);
 
-    return res.status(HTTP_STATUS.CREATED).json({
-      message: 'Created candidate education successfully',
-      data: candidateEducation
-    });
-  }
+        return res.status(HTTP_STATUS.CREATED).json({
+            message: 'Created candidate education successfully',
+            data: candidateEducation
+        });
+    }
 
-  public async readAll(req: Request, res: Response) {
-    const candidateEducation = await candidateEducationService.readAll();
+    public async readAll(req: Request, res: Response) {
+        const candidateEducation = await candidateEducationService.readAll();
 
-    return res.status(HTTP_STATUS.OK).json({
-      message: 'Get all candidate education successfully',
-      data: candidateEducation
-    });
-  }
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get all candidate education successfully',
+            data: candidateEducation
+        });
+    }
 
-  public async readMyEducation(req: Request, res: Response) {
-    const candidateEducation = await candidateEducationService.readMyEducation(req.currentUser);
+    public async readMyEducation(req: Request, res: Response) {
+        const candidateEducation = await candidateEducationService.readMyEducation(req.currentUser);
 
-    return res.status(HTTP_STATUS.OK).json({
-      message: 'Get my candidate education successfully',
-      data: candidateEducation
-    });
-  }
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get my candidate education successfully',
+            data: candidateEducation
+        });
+    }
 
-  public async update(req: Request, res: Response) {
-    const candidateEducation = await candidateEducationService.update(
-      parseInt(req.params.id),
-      req.body,
-      req.currentUser
-    );
+    public async readEducationById(req: Request, res: Response) {
+        const jobId = parseInt(req.params.jobId);
+        const candidateProfileId = parseInt(req.params.candidateProfileId);
 
-    return res.status(HTTP_STATUS.OK).json({
-      message: 'Update my candidate education successfully',
-      data: candidateEducation
-    });
-  }
+        const candidateSkill = await candidateEducationService.readEducationById(
+            candidateProfileId,
+            jobId,
+            req.currentUser
+        );
 
-  public async remove(req: Request, res: Response) {
-    const candidateEducation = await candidateEducationService.remove(
-      parseInt(req.params.id),
-      req.currentUser
-    );
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'get candidate skill successfully',
+            data: candidateSkill
+        });
+    }
 
-    return res.status(HTTP_STATUS.OK).json({
-      message: 'Delete my candidate education successfully',
-    });
-  }
+    public async update(req: Request, res: Response) {
+        const candidateEducation = await candidateEducationService.update(
+            parseInt(req.params.id),
+            req.body,
+            req.currentUser
+        );
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Update my candidate education successfully',
+            data: candidateEducation
+        });
+    }
+
+    public async remove(req: Request, res: Response) {
+        const candidateEducation = await candidateEducationService.remove(parseInt(req.params.id), req.currentUser);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Delete my candidate education successfully'
+        });
+    }
 }
 
 export const candidateEducationController: CandidateEducationController = new CandidateEducationController();
