@@ -58,6 +58,18 @@ class ApplyController {
         });
     }
 
+    public async readApplicationByIdForRecruiter(req: Request, res: Response) {
+        const jobId = parseInt(req.params.jobId);
+        const candidateProfileId = parseInt(req.params.candidateProfileId);
+
+        const application = await applyService.readApplicationByIdForRecruiter(jobId, candidateProfileId);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get application successfully',
+            data: application
+        });
+    }
+
     public async updateStatus(req: Request, res: Response) {
         const apply = await applyService.updateStatus(
             req.body,
@@ -68,7 +80,7 @@ class ApplyController {
 
         return res.status(HTTP_STATUS.OK).json({
             message: 'Update job status successfully',
-            data: apply
+            // data: apply
         });
     }
 }

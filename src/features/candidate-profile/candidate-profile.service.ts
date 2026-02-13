@@ -1,5 +1,5 @@
 import { CandidateProfile, Role } from '@prisma/client';
-import { BadRequestException, NotFountException } from '~/globals/cores/error.cores';
+import { BadRequestException, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import prisma from '~/prisma';
 import { ICandidateProfile } from './candidate-profile.interface';
 import { deleteCV } from '~/globals/helpers/upload.helper';
@@ -176,25 +176,31 @@ class CandidateProfileService {
         return resumePath;
     }
 
-    public async viewResumeForRecruiter(currentUser: UserPayLoad, candidateId: number, companyId: number) {
-        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.RESUME(candidateId));
+    public async viewResumeForRecruiter(currentUser: UserPayLoad, candidateProfileId: number, jobId: number) {
+        const cacheData = await redisClient.get(RedisKey.USER.CANDIDATE.RESUME(candidateProfileId));
         if (cacheData) return cacheData;
 
-        const company = await prisma.company.findUnique({
-            where: { id: companyId, userId: currentUser.id },
-            select: { id: true }
+        // const company = await prisma.company.findUnique({
+        //     where: { id: companyId, userId: currentUser.id },
+        //     select: { id: true }
+        // });
+        // if (!company) throw new BadRequestException('Invalid request');
+
+        // const isRecruiterHasAccess = await prisma.apply.findFirst({
+        //     where: { candidateProfileId: candidateId, companyId: company.id }
+        // });
+
+        // if (!isRecruiterHasAccess) throw new BadRequestException('Invalid request');
+
+        const apply = await prisma.apply.findFirst({
+            where: { jobId, candidateProfileId }
         });
-        if (!company) throw new BadRequestException('Invalid request');
 
-        const isRecruiterHasAccess = await prisma.apply.findFirst({
-            where: { candidateProfileId: candidateId, companyId: company.id }
-        });
+        if (!apply) throw new ForbiddenException(`You don't have access.`);
 
-        if (!isRecruiterHasAccess) throw new BadRequestException('Invalid request');
+        const resumePath = await this.getResume(candidateProfileId);
 
-        const resumePath = await this.getResume(candidateId);
-
-        redisClient.set(RedisKey.USER.CANDIDATE.RESUME(candidateId), resumePath, 'EX', 7200);
+        redisClient.set(RedisKey.USER.CANDIDATE.RESUME(candidateProfileId), resumePath, 'EX', 7200);
 
         return resumePath;
     }

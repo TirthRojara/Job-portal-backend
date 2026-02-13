@@ -3,7 +3,7 @@ import { candidateProfileService } from '../candidate-profile/candidate-profile.
 import { Apply } from '@prisma/client';
 import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import { jobService } from '../job/job.service';
-import { BadRequestException, NotFountException } from '~/globals/cores/error.cores';
+import { BadRequestException, ForbiddenException, NotFountException } from '~/globals/cores/error.cores';
 import { IApplyStatus } from './apply.interface';
 import { getIo } from '~/socketManager';
 import { redisClient } from '~/globals/cores/redis/redis.client';
@@ -162,7 +162,7 @@ class ApplyService {
             const rows = await prisma.apply.findMany({
                 where: { candidateProfileId: condidateProfile.id },
                 orderBy: { applyDate: 'desc' },
-                take: 5
+                take: 50 // how much application you want to cache
             });
             if (rows.length > 0) {
                 redisClient.rpush(
@@ -238,32 +238,7 @@ class ApplyService {
                 job: { select: { id: true, title: true } }
             },
             omit: { jobId: true, candidateProfileId: true }
-            // select: {
-            //     applyDate: true,
-            //     status: true,
-            //     // jobId: true,
-            //     candidateProfile: {
-            //         select: {
-            //             id: true,
-            //             fullName: true,
-            //             gender: true,
-            //             phone: true,
-            //             cv: true,
-            //             birthDate: true,
-            //             address: true,
-            //             userId: true
-            //         }
-            //     }
-            // }
         });
-
-        // await prisma.apply.findMany({
-        //     where: { jobId: job.id },
-        //     include: {
-        //         candidateProfile: { select: { id: true, fullName: true, summary: true, address: true } },
-        //         job: { select: { id: true, title: true } }
-        //     }
-        // });
 
         const isPaginationExist = await redisClient.exists(
             RedisKey.APPLY.READ_MY_APPLICATION_RECRUITER_PAGINATION(job.id, job.companyId)
@@ -274,7 +249,7 @@ class ApplyService {
             const rows = await prisma.apply.findMany({
                 where: { jobId: job.id },
                 orderBy: { applyDate: 'desc' },
-                take: 5,
+                take: 50, // how much application you want to cache
                 select: {
                     applyDate: true,
                     status: true,
@@ -326,6 +301,29 @@ class ApplyService {
         // if (!apply) throw new NotFountException(`Can't find application`);
 
         return apply;
+    }
+
+    public async readApplicationByIdForRecruiter(jobId: number, candidateProfileId: number) {
+        const apply = await prisma.apply.findFirst({
+            where: { jobId, candidateProfileId }
+        });
+
+        if (!apply) throw new ForbiddenException(`You don't have access.`);
+
+        const application = prisma.apply.findUnique({
+            where: {
+                candidateProfileId_jobId: {
+                    candidateProfileId,
+                    jobId
+                }
+            },
+            include: {
+                job: { select: { id: true, title: true } }
+            },
+            omit: { jobId: true, candidateProfileId: true }
+        });
+
+        return application;
     }
 
     public async updateStatus(

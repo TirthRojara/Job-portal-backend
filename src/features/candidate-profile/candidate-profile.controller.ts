@@ -86,9 +86,16 @@ class CandidateProfileController {
     public async viewResumeForRecruiter(req: Request, res: Response) {
         const resumePath = await candidateProfileService.viewResumeForRecruiter(
             req.currentUser,
-            Number(req.params.candidateId),
-            req.body.companyId
+            Number(req.params.candidateProfileId),
+            Number(req.params.jobId)
         );
+
+        const backendFileName = path.basename(resumePath);
+        const fileName = backendFileName.replace(/^\d+-\d+-/, '');
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `${fileName}`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
         return res.sendFile(resumePath);
     }

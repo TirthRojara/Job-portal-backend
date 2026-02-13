@@ -3,7 +3,7 @@ import { verifyUser } from '~/globals/middlewares/verifyUser.middleware';
 import { candidateProfileController } from './candidate-profile.controller';
 import asyncWrapper from '~/globals/cores/asyncWrapper.core';
 import { validateSchema } from '~/globals/middlewares/validateSchema.middleware';
-import { candidateProfile_Create_Schema, candidateProfile_Update_Schema, viewResume } from './candidate-profile.schema';
+import { candidateProfile_Create_Schema, candidateProfile_Update_Schema } from './candidate-profile.schema';
 import { checkPermission, checkPermission_A_R } from '~/globals/middlewares/checkPermission.middleware';
 import { allowAccess } from '~/globals/middlewares/allowAccess.middleware';
 import { Role } from '@prisma/client';
@@ -69,10 +69,10 @@ candidateProfileRoute.get(
 );
 
 candidateProfileRoute.get(
-    '/resume/recruiter/:candidateId',
+    '/resume/recruiter/:jobId/:candidateProfileId',
     verifyUser,
     allowAccess(Role.RECRUITER),
-    validateSchema(viewResume),
+    // validateSchema(viewResume),
     asyncWrapper(candidateProfileController.viewResumeForRecruiter)
 );
 
