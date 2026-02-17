@@ -16,18 +16,18 @@ const razorpayRoute = express.Router();
 // );
 
 razorpayRoute.get(
-  '/key',
-  //   verifyUser,
-  // allowAccess('RECRUITER'),
-  asyncWrapper(razorpayController.getKeyId)
+    '/key',
+    // verifyUser,
+    // allowAccess('RECRUITER'),
+    asyncWrapper(razorpayController.getKeyId)
 );
 
 // Create the subscription
 razorpayRoute.post(
-  '/subscription/create/:packageId',
-  verifyUser,
-  asyncWrapper(SubscriptionMiddleware),
-  asyncWrapper(razorpayController.create)
+    '/subscription/create/:packageId',
+    verifyUser,
+    asyncWrapper(SubscriptionMiddleware),
+    asyncWrapper(razorpayController.create)
 );
 
 // Pause the subscription request
@@ -38,8 +38,8 @@ razorpayRoute.post('/subscription/resume/:subscriptionId', asyncWrapper(razorpay
 
 //  Cancel the subscription request
 razorpayRoute.post(
-  '/subscription/cancel/:subscriptionId',
-  asyncWrapper(razorpayController.handleSubscriptionCancelled)
+    '/subscription/cancel/:subscriptionId',
+    asyncWrapper(razorpayController.handleSubscriptionCancelled)
 );
 
 //  ###   this is for webhook routes    ###
@@ -58,58 +58,58 @@ const rawBodyMiddleware = express.raw({ type: 'application/json' });
 
 // handle activate event
 razorpayWebhookRoute.post(
-  '/subscription/activate',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionActivatedWebhook)
+    '/subscription/activate',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionActivatedWebhook)
 );
 
 // handle authenticated event
 razorpayWebhookRoute.post(
-  '/subscription/authenticated',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionAuthenticatedWebhook)
+    '/subscription/authenticated',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionAuthenticatedWebhook)
 );
 
 // verify payment when charge event trigger
 razorpayWebhookRoute.post(
-  '/subscription/verify',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionCharged)
+    '/subscription/verify',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionCharged)
 );
 
 // handle pause event
 razorpayWebhookRoute.post(
-  '/subscription/pause',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionPausedWebhook)
+    '/subscription/pause',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionPausedWebhook)
 );
 
 // handle resume event
 razorpayWebhookRoute.post(
-  '/subscription/resume',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionResumedWebhook)
+    '/subscription/resume',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionResumedWebhook)
 );
 
 // handle halted event
 razorpayWebhookRoute.post(
-  '/subscription/halted',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionHaltedWebhook)
+    '/subscription/halted',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionHaltedWebhook)
 );
 
 // handle cancelled event
 razorpayWebhookRoute.post(
-  '/subscription/cancelled',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionCancelledWebhook)
+    '/subscription/cancelled',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionCancelledWebhook)
 );
 
 // handle completed event
 razorpayWebhookRoute.post(
-  '/subscription/completed',
-  rawBodyMiddleware,
-  asyncWrapper(razorpayController.handleSubscriptionCompletedWebhook)
+    '/subscription/completed',
+    rawBodyMiddleware,
+    asyncWrapper(razorpayController.handleSubscriptionCompletedWebhook)
 );
 
 //  https://conchate-moistly-lucy.ngrok-free.dev/api/v1/razorpay/webhook/subscription/authenticated

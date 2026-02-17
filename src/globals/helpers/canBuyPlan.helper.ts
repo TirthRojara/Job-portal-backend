@@ -1,5 +1,5 @@
 import { packageService } from '~/features/package/package.service';
-import { BadRequestException } from '../cores/error.cores';
+import { BadRequestException, CustomError, CustomErrorException } from '../cores/error.cores';
 
 function getMonthlyEndDateforProPlan(todayDate: Date): Date {
   const endDate = new Date(todayDate);
@@ -67,17 +67,19 @@ export async function canBuyPlan(upgradePlan: number, recruiterPackage: Recruite
   const pkg = await packageService.readOneForRecruiter(upgradePlan);
 
   if (userCurrentPlan === upgradePlan) {
-    // return new BadRequestException('You are already subscribed to this plan');
-    throw new BadRequestException('You are already subscribed to this plan');
+    // throw new BadRequestException('You are already subscribed to this plan');
+    throw new CustomErrorException('You are already subscribed to this plan', 409);
   }
 
   if (userCurrentPlan === 2) {
-    throw new BadRequestException('User with PRO plan cannot buy BASIC or PRO plans again.');
+    // throw new BadRequestException('User with PRO plan cannot buy BASIC or PRO plans again.');
+    throw new CustomErrorException('User with PRO plan cannot buy BASIC or PRO plans again.', 409);
   }
 
   if (userCurrentPlan === 4) {
     let option = {
-      plan_id: pkg.planId,
+      // plan_id: pkg.planId,
+      plan_id: pkg.label,
       customer_notify: true,
       total_count: 12, // For example, for 12 months
       notes: {
@@ -93,8 +95,8 @@ export async function canBuyPlan(upgradePlan: number, recruiterPackage: Recruite
     const extraDays = convertRemainingDaysBasicToPro(
       recruiterPackage.startDate,
       recruiterPackage.endDate!,
-      10,
-      20,
+      399,
+      699,
       todayDate
     );
 
@@ -103,7 +105,8 @@ export async function canBuyPlan(upgradePlan: number, recruiterPackage: Recruite
     const start_at_for_pro_plan = startAtTimestamp;
 
     let option = {
-      plan_id: 'plan_RbXdzxslWEISVU',
+      // plan_id: 'plan_RbXdzxslWEISVU',
+      plan_id: 'plan_SFzGPoz26mfv0h',
       customer_notify: true,
       total_count: 12, // For example, for 12 months
       start_at: start_at_for_pro_plan,

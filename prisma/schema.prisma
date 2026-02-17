@@ -309,6 +309,7 @@ model Subscription {
   status                 SubscriptionStatus
   startAt                DateTime?
   endAt                  DateTime?
+  nextPayment            DateTime
   totalCount             Int?
   paidCount              Int?
   currency               String             @default("INR")

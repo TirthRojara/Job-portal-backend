@@ -15,6 +15,8 @@ export async function SubscriptionMiddleware(req: Request, res: Response, next: 
       include: { package: true }
     });
 
+    // console.log({activePackage})
+
     const now = new Date();
 
     if (!activePackage) {

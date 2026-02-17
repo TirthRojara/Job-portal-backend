@@ -20,36 +20,36 @@ import authRoute from '~/features/auth/auth.route';
 import userRouter from '~/features/user/user.route';
 import testRoute from '~/features/testing module/test.route';
 import chatRoute from '~/features/chat/chat.route';
+import paymentDataRoute from '~/features/payment/payment.route';
 
 function appRoutes(app: Application) {
-  app.use('/api/v1/testing', testRoute);
-  app.use('/api/v1/users', userRouter);
-  app.use('/api/v1/auth', authRoute);
-  app.use('/api/v1/candidate-profiles', candidateProfileRoute);
-  app.use('/api/v1/candidate-language', candidateLanguageRoute);
-  app.use('/api/v1/candidate-education', candidateEducationRoute);
-  app.use('/api/v1/candidate-skill', candidateSkillRoute);
-  app.use('/api/v1/candidate-experience', candidateExperienceRoute);
-  app.use('/api/v1/company', companyRoute);
-  app.use('/api/v1/company-image', companyImageRoute);
-  app.use('/api/v1/company-industry', companyIndustryRoute);
-  app.use('/api/v1/job-role', jobRoleRoute);
-  app.use('/api/v1/job', jobRoute);
-  app.use('/api/v1/job-skill', jobSkillRoute);
-  app.use('/api/v1/job-benefit', jobBenefitRoute);
-  app.use('/api/v1/apply', applyRoute);
-  app.use('/api/v1/package', packageRoute);
-  // app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
-  app.use('/api/v1/razorpay', paymentroute.razorpayRoute);
-  app.use('/api/v1/chat', chatRoute);
-  
+    app.use('/api/v1/testing', testRoute);
+    app.use('/api/v1/users', userRouter);
+    app.use('/api/v1/auth', authRoute);
+    app.use('/api/v1/candidate-profiles', candidateProfileRoute);
+    app.use('/api/v1/candidate-language', candidateLanguageRoute);
+    app.use('/api/v1/candidate-education', candidateEducationRoute);
+    app.use('/api/v1/candidate-skill', candidateSkillRoute);
+    app.use('/api/v1/candidate-experience', candidateExperienceRoute);
+    app.use('/api/v1/company', companyRoute);
+    app.use('/api/v1/company-image', companyImageRoute);
+    app.use('/api/v1/company-industry', companyIndustryRoute);
+    app.use('/api/v1/job-role', jobRoleRoute);
+    app.use('/api/v1/job', jobRoute);
+    app.use('/api/v1/job-skill', jobSkillRoute);
+    app.use('/api/v1/job-benefit', jobBenefitRoute);
+    app.use('/api/v1/apply', applyRoute);
+    app.use('/api/v1/package', packageRoute);
+    // app.use('/api/v1/recruiter-package', RecruiterPackageRoute);
+    app.use('/api/v1/razorpay', paymentroute.razorpayRoute);
+    app.use('/api/v1/payment', paymentDataRoute);
+    app.use('/api/v1/chat', chatRoute);
 
-
-  // app.use('/api/v1/razorpay/webhook', express.raw({ type: 'application/json' }), paymentroute.razorpayWebhookRoute);
+    // app.use('/api/v1/razorpay/webhook', express.raw({ type: 'application/json' }), paymentroute.razorpayWebhookRoute);
 }
 
 function razorpayWebhookRoute(app: Application) {
-  app.use('/api/v1/razorpay/webhook', paymentroute.razorpayWebhookRoute)
+    app.use('/api/v1/razorpay/webhook', paymentroute.razorpayWebhookRoute);
 }
 
-export default {appRoutes, razorpayWebhookRoute};
+export default { appRoutes, razorpayWebhookRoute };
