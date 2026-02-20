@@ -1,6 +1,7 @@
 import { Company } from '@prisma/client';
 import { Resend } from 'resend';
 import { BadRequestException } from '~/globals/cores/error.cores';
+import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
 import prisma from '~/prisma';
 // import { sendMail } from '~/globals/helpers/sendMail.helper';
 
@@ -29,12 +30,39 @@ class TestService {
 
         // console.log(response)
 
-        const company = await prisma.company.findUnique({
-            where: { id: 26 },
-            omit: { views: true }
+        // const test = await prisma.subscription.findMany({
+        //     select: { nextPayment: true}
+        // })
+
+        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+            page: 1,
+            limit: 10,
+            filter: '',
+            filterFields: [],
+            entity: 'chat',
+            additionCondition: { companyId: 26 },
+            orderCondition: { updateAt: 'desc' },
+            include: {},
+            select: {
+                id: true,
+                candidateProfileId: true,
+                companyId: true,
+                chatRoomId: true
+            }
         });
 
-        return company;
+        const chat = await prisma.chat.findMany({
+            where: { companyId: 26 },
+            orderBy: { updateAt: 'desc' },
+            // select: {
+            //     candidateProfile: { select: { fullName: true}}
+            // }
+            include: {
+                candidateProfile: { select: { fullName: true } }
+            }
+        });
+
+        return chat;
     }
 }
 

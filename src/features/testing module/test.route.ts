@@ -6,7 +6,7 @@ import asyncWrapper from '~/globals/cores/asyncWrapper.core';
 
 const testRoute = express.Router();
 
-testRoute.post('/test', asyncWrapper(testController.test));
+testRoute.get('/test', asyncWrapper(testController.test));
 
 
 export default testRoute;

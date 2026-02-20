@@ -20,7 +20,11 @@ class ChatService {
 
         if (!candidateProfile) throw new BadRequestException('Invalid request');
 
-        const { data, totalCount, totalPages } = await getPaginationAndFilter({
+        const {
+            data,
+            totalCount,
+            totalPages
+        } = await getPaginationAndFilter({
             page,
             limit,
             filter: '',
@@ -28,22 +32,39 @@ class ChatService {
             entity: 'chat',
             additionCondition: { candidateProfileId: candidateProfile.id },
             orderCondition: { updateAt: 'desc' },
-            include: {},
-            select: {
-                id: true,
-                candidateProfileId: true,
-                companyId: true,
-                chatRoomId: true
+            include: {
+                company: { select: { id: true, name: true } }
             }
+            // include: {
+            //     candidateProfile: { select: { fullName: true } }
+            // }
+            // select: {
+            //     id: true,
+            //     candidateProfileId: true,
+            //     companyId: true,
+            //     chatRoomId: true
+            // }
         });
 
-        console.log('chat data :', data);
+        // console.log('chat data :', data);
+
+        // const transformedResponse = {
+        //     ...response,
+        //     data: response.data?.map(({ company, ...rest }: any) => ({
+        //         ...rest,
+        //         candidateProfile: {
+        //             fullName: company.name
+        //         }
+        //     }))
+        // };
+
+        // console.log({transformedResponse})
 
         // redisClient
         //     .set(RedisKey.CHAT.LIST(currentUser.id, page), JSON.stringify({ chat: data, totalCount, totalPages }), 'EX', 7200)
         //     .catch((err) => console.error('Redis set failed', err));
 
-        return { chat: data, totalCount, totalPages };
+        return { chat: data , totalCount, totalPages };
     }
 
     public async getChatListForRecruiter(
@@ -69,13 +90,15 @@ class ChatService {
             entity: 'chat',
             additionCondition: { companyId: isUserHasCompany.id },
             orderCondition: { updateAt: 'desc' },
-            include: {},
-            select: {
-                id: true,
-                candidateProfileId: true,
-                companyId: true,
-                chatRoomId: true
+            include: {
+                candidateProfile: { select: { fullName: true } }
             }
+            // select: {
+            //     id: true,
+            //     candidateProfileId: true,
+            //     companyId: true,
+            //     chatRoomId: true
+            // }
         });
 
         // redisClient
@@ -88,18 +111,47 @@ class ChatService {
     public async getChatForCandidate(currentUser: UserPayLoad, chatRoomId: string) {
         const candidateProfile = await prisma.candidateProfile.findUnique({
             where: { userId: currentUser.id },
-            select: { id: true }
+            select: { id: true, fullName: true }
         });
 
         if (!candidateProfile) throw new BadRequestException('Invalid request');
 
         const chat = await prisma.chat.findUnique({
             where: { candidateProfileId: candidateProfile.id, chatRoomId }
+            // include: {
+            //     candidateProfile: { select: { fullName: true } }
+            // }
         });
+
+        const company = await prisma.company.findUnique({
+            where: { id: Number(chatRoomId.split('_')[1]) },
+            select: { id: true, name: true }
+        });
+
+        const data = {
+            ...chat,
+            candidateProfile: {
+                fullName: company?.name
+            }
+        };
+
+        if (chat === null) {
+            const data = {
+                candidateProfileId: candidateProfile.id,
+                companyId: Number(chatRoomId.split('_')[1]),
+                chatRoomId: chatRoomId,
+                messages: [],
+                candidateProfile: {
+                    fullName: company?.name
+                }
+            };
+
+            return data;
+        }
 
         // #### Add redis ####
 
-        return chat;
+        return data;
     }
 
     public async getChatForRECRUITER(currentUser: UserPayLoad, chatRoomId: string, companyId: number) {
@@ -111,8 +163,30 @@ class ChatService {
         if (!isUserHasCompany) throw new BadRequestException('Invalid request');
 
         const chat = await prisma.chat.findUnique({
-            where: { companyId, chatRoomId }
+            where: { companyId, chatRoomId },
+            include: {
+                candidateProfile: { select: { fullName: true } }
+            }
         });
+
+        if (chat === null) {
+            const candidate = await prisma.candidateProfile.findUnique({
+                where: { id: Number(chatRoomId.split('_')[2]) },
+                select: { id: true, fullName: true }
+            });
+
+            const data = {
+                candidateProfileId: Number(chatRoomId.split('_')[2]),
+                companyId: companyId,
+                chatRoomId: chatRoomId,
+                messages: [],
+                candidateProfile: {
+                    fullName: candidate?.fullName
+                }
+            };
+
+            return data;
+        }
 
         // #### Add redis ####
 

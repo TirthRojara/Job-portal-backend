@@ -67,8 +67,10 @@ export const initSocket = (httpServer: any): SocketIOServer => {
         // Log when user is leaving rooms (disconnecting event)
         socket.on('disconnecting', () => {
             socket.rooms.forEach((room) => {
-                if (room !== socket.id) {
+                // if (room !== socket.id) {
+                if (room !== socket.id && room.startsWith('chat_')) {
                     console.log(`User ${socket.data.userId} leaving room: ${room}`);
+                    console.log(`Auto leaving room on chat switch: ${room}`);
                 }
             });
         });

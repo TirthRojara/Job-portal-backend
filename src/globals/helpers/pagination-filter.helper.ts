@@ -25,7 +25,7 @@ export async function getPaginationAndFilter({
     //   { name: { contains: filter, mode: 'insensitive' } },
     //   { description: { contains: filter, mode: 'insensitive' } }
     // ]
-    console.log('condition:', condition);
+    // console.log('condition:', condition);
 
     const where = filter
         ? {
@@ -34,7 +34,7 @@ export async function getPaginationAndFilter({
           }
         : {};
 
-    console.log('where in helper: ', where, ' additionCondition: ', additionCondition);
+    // console.log('where in helper: ', where, ' additionCondition: ', additionCondition);
 
     const queryOptions: any = {
         where: { ...additionCondition, ...where },
@@ -60,7 +60,7 @@ export async function getPaginationAndFilter({
         }
     }
 
-    console.log(queryOptions);
+    // console.log(queryOptions);
 
     const [data, totalCount] = await Promise.all([
         (prisma[entity] as any).findMany({
