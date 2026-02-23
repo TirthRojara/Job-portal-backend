@@ -9,6 +9,7 @@ import { handleJoinChat } from './features/socket.io/chat/joinChat.socket';
 import { handleSendMessage } from './features/socket.io/chat/sendMessageHandler.socket';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { redisPublisher, redisSubscriber } from './globals/cores/redis/redis.client';
+import { chatservice } from './features/chat/chat.service';
 
 let io: SocketIOServer | null = null;
 
@@ -61,8 +62,21 @@ export const initSocket = (httpServer: any): SocketIOServer => {
             console.log(`Socket ${socket.id} joined personal rooms: ${candidateRoom} and new_job_posts`);
         }
 
+        // CHAT HANDLES
+
         socket.on('joinChat', (params) => handleJoinChat(socket, params));
-        socket.on('sendMessage', (params, callback) => handleSendMessage(socket, params, callback));
+        // socket.on('sendMessage', (params, callback) => handleSendMessage(socket, params, callback));
+        socket.on('sendMessage', (params, callback) => chatservice.handleSendMessage(socket, params, callback));
+
+        socket.on('chatActive', ({ chatId }) => {
+            socket.data.activeChatRoomId = chatId;
+        });
+
+        socket.on('chatInactive', () => {
+            socket.data.activeChatRoomId = null;
+        });
+
+        socket.on('markAsRead', (params, callback) => chatservice.markAsRead(socket, params, callback));
 
         // Log when user is leaving rooms (disconnecting event)
         socket.on('disconnecting', () => {

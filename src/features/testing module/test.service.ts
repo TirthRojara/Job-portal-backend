@@ -34,35 +34,53 @@ class TestService {
         //     select: { nextPayment: true}
         // })
 
-        const { data, totalCount, totalPages } = await getPaginationAndFilter({
-            page: 1,
-            limit: 10,
-            filter: '',
-            filterFields: [],
-            entity: 'chat',
-            additionCondition: { companyId: 26 },
-            orderCondition: { updateAt: 'desc' },
-            include: {},
-            select: {
-                id: true,
-                candidateProfileId: true,
-                companyId: true,
-                chatRoomId: true
-            }
-        });
+        // const { data, totalCount, totalPages } = await getPaginationAndFilter({
+        //     page: 1,
+        //     limit: 10,
+        //     filter: '',
+        //     filterFields: [],
+        //     entity: 'chat',
+        //     additionCondition: { companyId: 26 },
+        //     orderCondition: { updateAt: 'desc' },
+        //     include: {},
+        //     select: {
+        //         id: true,
+        //         candidateProfileId: true,
+        //         companyId: true,
+        //         chatRoomId: true
+        //     }
+        // });
 
-        const chat = await prisma.chat.findMany({
-            where: { companyId: 26 },
-            orderBy: { updateAt: 'desc' },
-            // select: {
-            //     candidateProfile: { select: { fullName: true}}
-            // }
-            include: {
-                candidateProfile: { select: { fullName: true } }
-            }
-        });
+        // const chat = await prisma.chat.findMany({
+        //     where: { companyId: 26 },
+        //     orderBy: { updateAt: 'desc' },
+        //     // select: {
+        //     //     candidateProfile: { select: { fullName: true}}
+        //     // }
+        //     include: {
+        //         company: { select: { id: true, name: true } }
+        //     }
+        // });
 
-        return chat;
+        // return chat;
+
+        // if (currentUser.role === Role.CANDIDATE) {
+        // const candidateProfile = await prisma.candidateProfile.findUnique({
+        //     where: { id:   },
+        //     select: { id: true }
+        // });
+
+        // return prisma.chat.aggregate({
+        //     where: { candidateProfileId: 22 },
+        //     _sum: { candidateUnreadCount: true }
+        // });
+
+        // if (currentUser.role === Role.RECRUITER) {
+            return prisma.chat.aggregate({
+                where: { companyId: 26 },
+                _sum: { companyUnreadCount: true }
+            });
+        // }
     }
 }
 

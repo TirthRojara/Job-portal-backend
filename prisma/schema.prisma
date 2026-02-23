@@ -309,7 +309,7 @@ model Subscription {
   status                 SubscriptionStatus
   startAt                DateTime?
   endAt                  DateTime?
-  nextPayment            DateTime
+  nextPayment            DateTime?
   totalCount             Int?
   paidCount              Int?
   currency               String             @default("INR")
@@ -337,15 +337,42 @@ model PaymentHistory {
 }
 
 model Chat {
-  id                 Int              @id @default(autoincrement())
+  id                 Int    @id @default(autoincrement())
   candidateProfileId Int
   companyId          Int
-  chatRoomId         String           @unique
-  messages           Json?
-  createdAt          DateTime         @default(now())
-  updateAt           DateTime         @updatedAt
-  candidateProfile   CandidateProfile @relation(fields: [candidateProfileId], references: [id])
-  company            Company          @relation(fields: [companyId], references: [id])
+  chatRoomId         String @unique
+
+  companyUnreadCount   Int @default(0)
+  candidateUnreadCount Int @default(0)
+
+  lastMessage   String?
+  lastMessageAt DateTime @default(now())
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id])
+  company          Company          @relation(fields: [companyId], references: [id])
+  messages         Message[]
+
+  // @@index([lastMessageAt, id])
+  @@unique([lastMessageAt, id])
+  @@unique([companyId, candidateProfileId])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  chatId     Int
+  senderId   Int
+  receiverId Int
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id])
+
+  // @@index([chatId, receiverId, isRead])
+  @@index([chatId, createdAt])
+  @@index([chatId, isRead])
 }
 
 enum Role {

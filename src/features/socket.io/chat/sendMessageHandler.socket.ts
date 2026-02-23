@@ -20,6 +20,7 @@ export async function handleSendMessage(socket: any, { chatRoomId, message }: an
             return callback?.({ error: 'Invalid message content' });
         }
 
+        //##############################################################################################################
         // Append timestamp and senderId
         const newMessage = {
             content: message.content,
@@ -27,24 +28,25 @@ export async function handleSendMessage(socket: any, { chatRoomId, message }: an
             createdAt: new Date().toISOString()
         };
 
-        const chat = await prisma.chat.upsert({
-            where: { chatRoomId },
-            create: {
-                chatRoomId,
-                candidateProfileId: socket.data.candidateProfileId,
-                companyId: socket.data.companyId
-            },
-            update: {}
-        });
+        // const chat = await prisma.chat.upsert({
+        //     where: { chatRoomId },
+        //     create: {
+        //         chatRoomId,
+        //         candidateProfileId: socket.data.candidateProfileId,
+        //         companyId: socket.data.companyId
+        //     },
+        //     update: {}
+        // });
 
-        const updatedMessages = Array.isArray(chat.messages) ? [...chat.messages, newMessage] : [newMessage];
+        // const updatedMessages = Array.isArray(chat.messages) ? [...chat.messages, newMessage] : [newMessage];
 
-        await prisma.chat.update({
-            where: { chatRoomId },
-            data: {
-                messages: updatedMessages
-            }
-        });
+        // await prisma.chat.update({
+        //     where: { chatRoomId },
+        //     data: {
+        //         messages: updatedMessages
+        //     }
+        // });
+        //##############################################################################################################
 
         // Broadcast the new message to all clients in the room
         const io = getIo();
