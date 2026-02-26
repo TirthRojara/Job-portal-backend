@@ -310,16 +310,28 @@ class ChatService {
         callback: any
     ) {
         try {
+            // console.log('inside handle send message');
+            // console.log(socket, null, 2);
+            // console.log('params');
+            // console.log({ chatRoomId, chatId, message });
             const io = getIo();
 
-            const [_, companyIdStr, candidateIdStr] = chatRoomId.split('_');
+            const [_, companyIdStr, candidateIdStr, chatIdStr] = chatRoomId.split('_');
+            // console.log({
+            //     companyIdStr,
+            //     candidateIdStr,
+            //     chatIdStr
+            // });
+
+            const chatRoom = `chat_${companyIdStr}_${candidateIdStr}`;
+            // console.log({ chatRoom });
 
             if (!chatRoomId || !message) {
                 return callback?.({ error: 'chatRoomId and message are required' });
             }
 
             // Optionally validate that the socket is in the room
-            if (!socket.rooms.has(chatRoomId)) {
+            if (!socket.rooms.has(chatRoom)) {
                 return callback?.({ error: 'User not joined in the chat room' });
             }
 
@@ -328,16 +340,18 @@ class ChatService {
                 return callback?.({ error: 'Invalid message content' });
             }
 
-            const receiverId =
-                socket.data.role === Role.CANDIDATE
-                    ? Number(companyIdStr)
-                    : socket.data.role === Role.RECRUITER
-                      ? Number(candidateIdStr)
-                      : (() => {
-                            throw new Error('Invalid role');
-                        })();
+            // const receiverId =
+            //     socket.data.role === Role.CANDIDATE
+            //         ? Number(companyIdStr)
+            //         : socket.data.role === Role.RECRUITER
+            //           ? Number(candidateIdStr)
+            //           : (() => {
+            //                 throw new Error('Invalid role');
+            //             })();
 
             let receiverUserId: number;
+
+            // console.log('socket.data.role', socket.data.role);
 
             if (socket.data.role === Role.CANDIDATE) {
                 const company = await prisma.company.findUnique({
@@ -345,41 +359,60 @@ class ChatService {
                     select: { userId: true }
                 });
 
+                // console.log('inside check role candidate');
+
                 if (!company) throw new BadRequestException('Receiver Id not found.');
 
                 receiverUserId = company?.userId;
-            }
-
-            if (socket.data.role === Role.RECRUITER) {
+            } else if (socket.data.role === Role.RECRUITER) {
                 const candidate = await prisma.candidateProfile.findUnique({
                     where: { id: Number(candidateIdStr) },
                     select: { userId: true }
                 });
 
+                // console.log('inside check role recruiter');
+
                 if (!candidate) throw new BadRequestException('Receiver Id not found.');
 
                 receiverUserId = candidate.userId;
+            } else {
+                throw new BadRequestException('Invalid role');
             }
 
+            console.log('receiver user id :', receiverUserId);
+
+            console.log('chat room', chatRoom);
             // Check Receiver is currently in room
-            const sockets = await io.in(chatRoomId).fetchSockets();
+            const sockets = await io.in(chatRoom).fetchSockets();
+
+            // console.log('sockets :', sockets);
+
+            console.log('active chat room :', socket.data.activeChatRoomId);
 
             // const isReceiverInRoom = sockets.some((s) => s.data.userId === receiverUserId);
             const isReceiverActivelyViewing = sockets.some(
-                (s) => s.data.userId === receiverUserId && s.data.activeChatRoomId === chatRoomId
+                (s) => s.data.userId === receiverUserId && s.data.activeChatRoomId === chatId
             );
 
+            console.log({ isReceiverActivelyViewing });
+
+            // console.log('just above transaction');
+
             const createNewMessage = await prisma.$transaction(async (tx) => {
+                // console.log('inside transection start');
+
                 // Create message
                 const newMessage = await tx.message.create({
                     data: {
                         content: message.content,
                         senderId: socket.data.userId,
-                        receiverId: receiverId,
-                        chatId: chatId,
+                        receiverId: receiverUserId,
+                        chatId: Number(chatId),
                         isRead: isReceiverActivelyViewing ? true : false
                     }
                 });
+
+                // console.log('inside transection 1');
 
                 //Update chat last message
                 const updateData: any = {
@@ -396,8 +429,10 @@ class ChatService {
                     }
                 }
 
+                // console.log('inside transection 2');
+
                 const newChat = await tx.chat.update({
-                    where: { id: chatId },
+                    where: { id: Number(chatId) },
                     data: updateData,
                     select: {
                         id: true,
@@ -405,14 +440,37 @@ class ChatService {
                         lastMessageAt: true,
                         companyUnreadCount: true,
                         candidateUnreadCount: true,
-                        chatRoomId: true
+                        chatRoomId: true,
+                        candidateProfileId: true,
+                        companyId: true
                     }
                 });
+
+                console.log('inside transection end');
 
                 return { newChat, newMessage };
             });
 
-            io.to(chatRoomId).emit('newMessage', createNewMessage);
+            // Get candidate user id
+            const candidate = await prisma.candidateProfile.findUnique({
+                where: { id: createNewMessage.newChat.candidateProfileId },
+                select: { userId: true }
+            });
+            const candidateUserId = candidate?.userId;
+
+            // Get company user id
+            const company = await prisma.company.findUnique({
+                where: { id: createNewMessage.newChat.companyId },
+                select: { userId: true }
+            });
+            const companyUserId = company?.userId;
+
+            io.to(chatRoom).emit('newMessage', createNewMessage);
+
+            io.to(`user_${candidateUserId}`).emit('newChatList', createNewMessage);
+            io.to(`user_${companyUserId}`).emit('newChatList', createNewMessage);
+
+            console.log('✅ messages sended');
 
             // Acknowledge the sender
             callback?.({ success: true });
@@ -428,27 +486,47 @@ class ChatService {
         callback: any
     ) {
         try {
+            console.log('inside mark as read');
+
+            const io = getIo();
+
+            console.log({ chatRoomId, chatId });
             // Optionally validate that the socket is in the room
             if (!socket.rooms.has(chatRoomId)) {
                 return callback?.({ error: 'User not joined in the chat room' });
             }
 
-            const [_, companyIdStr, candidateIdStr] = chatRoomId.split('_');
+            // const [_, companyIdStr, candidateIdStr] = chatRoomId.split('_');
 
-            const receiverId =
-                socket.data.role === Role.RECRUITER
-                    ? Number(companyIdStr)
-                    : socket.data.role === Role.CANDIDATE
-                      ? Number(candidateIdStr)
-                      : (() => {
-                            throw new Error('Invalid role');
-                        })();
+            // const receiverId =
+            //     socket.data.role === Role.RECRUITER
+            //         ? Number(companyIdStr)
+            //         : socket.data.role === Role.CANDIDATE
+            //           ? Number(candidateIdStr)
+            //           : (() => {
+            //                 throw new Error('Invalid role');
+            //             })();
+
+            console.log('userId: ', socket.data.userId);
 
             const markAsRead = await prisma.$transaction(async (tx) => {
+                // Get sender id => for frontend so current user can update the data
+                const message = await tx.message.findFirst({
+                    where: {
+                        chatId,
+                        receiverId: socket.data.userId
+                    },
+                    select: { senderId: true }
+                });
+
+                console.log('✅✅✅✅✅ sender id : ', message?.senderId);
+
+                if (!message) throw new BadRequestException('Sender id not found.');
+
                 const updateMessage = await tx.message.updateMany({
                     where: {
                         chatId,
-                        receiverId,
+                        receiverId: socket.data.userId,
                         isRead: false
                     },
                     data: { isRead: true }
@@ -464,10 +542,17 @@ class ChatService {
                     select: { id: true, companyUnreadCount: true, candidateUnreadCount: true, chatRoomId: true }
                 });
 
-                return newChat;
+                const sendData = {
+                    ...newChat,
+                    senderId: message?.senderId
+                };
+
+                // return newChat;
+                return sendData;
             });
 
-            socket.to(chatRoomId).emit('markAsRead', markAsRead);
+            // socket.to(chatRoomId).emit('markAsRead', markAsRead);
+            io.to(`user_${markAsRead.senderId}`).emit('markAsRead', markAsRead);
 
             // Acknowledge the sender
             callback?.({ success: true });

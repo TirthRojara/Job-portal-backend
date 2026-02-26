@@ -49,6 +49,11 @@ export const initSocket = (httpServer: any): SocketIOServer => {
     io.on('connection', (socket) => {
         console.log('New client connected:', socket.id, 'User ID:', socket.data.userId, 'Role:', socket.data.role);
 
+        //personal room for all user
+        const userRoom = `user_${socket.data.userId}`;
+        socket.join(userRoom);
+        console.log('User Join Personal room 🏠 : ', userRoom);
+
         // Join personal rooms for candidate role
         if (socket.data.role === 'CANDIDATE') {
             const candidateRoom = `candidate_${socket.data.userId}`;
@@ -68,12 +73,36 @@ export const initSocket = (httpServer: any): SocketIOServer => {
         // socket.on('sendMessage', (params, callback) => handleSendMessage(socket, params, callback));
         socket.on('sendMessage', (params, callback) => chatservice.handleSendMessage(socket, params, callback));
 
-        socket.on('chatActive', ({ chatId }) => {
-            socket.data.activeChatRoomId = chatId;
+        // socket.on('chatActive', ({ chatId }) => {
+        //     socket.data.activeChatRoomId = chatId;
+        // });
+        // socket.on('chatInactive', () => {
+        //     socket.data.activeChatRoomId = null;
+        // });
+
+        socket.on('chatActive', ({ chatId }, callback) => {
+            try {
+                socket.data.activeChatRoomId = chatId;
+
+                console.log('✅ chat active : ', chatId);
+
+                callback?.({ success: true });
+            } catch (error) {
+                callback?.({ success: false, error: 'Failed to activate chat' });
+            }
         });
 
-        socket.on('chatInactive', () => {
-            socket.data.activeChatRoomId = null;
+        socket.on('chatInactive', (callback: (response: { success: boolean; error?: string }) => void) => {
+            try {
+                const inactive = socket.data.activeChatRoomId;
+                socket.data.activeChatRoomId = null;
+
+                console.log('⏸️ chat in-active : ', inactive);
+
+                callback?.({ success: true });
+            } catch (error) {
+                callback?.({ success: false, error: 'Failed to deactivate chat' });
+            }
         });
 
         socket.on('markAsRead', (params, callback) => chatservice.markAsRead(socket, params, callback));
