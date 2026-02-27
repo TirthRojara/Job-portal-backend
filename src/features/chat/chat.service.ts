@@ -237,7 +237,7 @@ class ChatService {
         }
     }
 
-    public async getMessages(chatId: number, limit: number, cursor?: number) {
+    public async getMessages(chatId: number, limit: number, cursor?: { messageId: number; messageCreatedAt: string }) {
         // CURSOR = MESSAGE ID
 
         // let whereCondition: any = { chatId };
@@ -270,14 +270,30 @@ class ChatService {
             // orderBy: { createdAt: 'desc' }
             take: limit,
             skip: cursor ? 1 : 0,
-            cursor: cursor ? { id: cursor } : undefined,
+            // cursor: cursor ? { id: cursor } : undefined,
+            cursor: cursor
+                ? {
+                      createdAt_id: {
+                          createdAt: cursor.messageCreatedAt,
+                          id: cursor.messageId
+                      }
+                  }
+                : undefined,
             where: { chatId },
             orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
+            // orderBy: { id: 'desc' }
         });
 
-        const reversedMessages = messages.reverse();
+        const nextCursor =
+            messages.length === limit
+                ? {
+                      createdAt: messages[messages.length - 1].createdAt,
+                      id: messages[messages.length - 1].id
+                  }
+                : null;
 
-        const nextCursor = messages.length === limit ? messages[messages.length - 1].id : null;
+        const reversedMessages = messages.reverse();
+        // const nextCursor = messages.length === limit ? messages[messages.length - 1].id : null;
 
         return {
             messages: reversedMessages,

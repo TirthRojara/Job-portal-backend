@@ -94,7 +94,9 @@ class ChatController {
     public async getMessages(req: Request, res: Response) {
         const limit = req.query.limit ? Number(req.query.limit) : 20;
         const chatId = Number(req.params.chatId);
-        const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
+        const messageId = req.query.messageId ? Number(req.query.messageId) : undefined;
+        const messageCreatedAt = req.query.messageCreatedAt ? String(req.query.messageCreatedAt) : undefined;
+        const cursor = messageId && messageCreatedAt ? { messageId, messageCreatedAt } : undefined;
 
         const messages = await chatservice.getMessages(chatId, limit, cursor);
 

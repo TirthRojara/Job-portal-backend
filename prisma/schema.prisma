@@ -371,6 +371,7 @@ model Message {
   chat Chat @relation(fields: [chatId], references: [id])
 
   // @@index([chatId, receiverId, isRead])
+  @@unique([createdAt, id])
   @@index([chatId, createdAt])
   @@index([chatId, isRead])
 }
