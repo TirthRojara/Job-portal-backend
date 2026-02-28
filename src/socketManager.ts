@@ -10,7 +10,6 @@ import { handleSendMessage } from './features/socket.io/chat/sendMessageHandler.
 import { createAdapter } from '@socket.io/redis-adapter';
 import { redisPublisher, redisSubscriber } from './globals/cores/redis/redis.client';
 import { chatservice } from './features/chat/chat.service';
-import { registerPresence } from './features/socket.io/chat/onlineStatus';
 
 let io: SocketIOServer | null = null;
 
@@ -69,9 +68,6 @@ export const initSocket = (httpServer: any): SocketIOServer => {
         }
 
         // CHAT HANDLES
-
-        //online status
-        // await registerPresence(socket);
 
         socket.on('joinChat', (params) => handleJoinChat(socket, params));
         // socket.on('sendMessage', (params, callback) => handleSendMessage(socket, params, callback));
