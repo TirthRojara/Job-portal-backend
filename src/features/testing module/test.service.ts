@@ -30,10 +30,6 @@ class TestService {
 
         // console.log(response)
 
-        // const test = await prisma.subscription.findMany({
-        //     select: { nextPayment: true}
-        // })
-
         // const { data, totalCount, totalPages } = await getPaginationAndFilter({
         //     page: 1,
         //     limit: 10,
@@ -51,36 +47,22 @@ class TestService {
         //     }
         // });
 
-        // const chat = await prisma.chat.findMany({
-        //     where: { companyId: 26 },
-        //     orderBy: { updateAt: 'desc' },
-        //     // select: {
-        //     //     candidateProfile: { select: { fullName: true}}
-        //     // }
-        //     include: {
-        //         company: { select: { id: true, name: true } }
-        //     }
-        // });
+        const chats = await prisma.chat.findMany({
+            where: { companyId: 26 },
+            select: { candidateProfile: { select: { userId: true } } }
+        });
 
-        // return chat;
+        console.log({ chats });
 
-        // if (currentUser.role === Role.CANDIDATE) {
-        // const candidateProfile = await prisma.candidateProfile.findUnique({
-        //     where: { id:   },
-        //     select: { id: true }
-        // });
+        const relatedUserIds = new Set<number>();
 
-        // return prisma.chat.aggregate({
-        //     where: { candidateProfileId: 22 },
-        //     _sum: { candidateUnreadCount: true }
-        // });
+        chats.forEach((chat: any) => {
+            const otherUserId = chat.candidateProfile!.userId;
 
-        // if (currentUser.role === Role.RECRUITER) {
-            return prisma.chat.aggregate({
-                where: { companyId: 26 },
-                _sum: { companyUnreadCount: true }
-            });
-        // }
+            console.log({ otherUserId });
+
+            relatedUserIds.add(otherUserId);
+        });
     }
 }
 
