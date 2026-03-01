@@ -99,6 +99,16 @@ class CandidateProfileController {
 
         return res.sendFile(resumePath);
     }
+
+    public async getStates(req: Request, res: Response) {
+        
+        const data = await candidateProfileService.getStates(req.currentUser);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get candidate states successfully',
+            data
+        });
+    }
 }
 
 export const candidateProfileController: CandidateProfileController = new CandidateProfileController();

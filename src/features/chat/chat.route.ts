@@ -56,4 +56,11 @@ chatRoute.get(
     asyncWrapper(chatController.createChat)
 );
 
+chatRoute.get(
+    '/unReadCount',
+    verifyUser,
+    allowAccess(Role.CANDIDATE, Role.RECRUITER),
+    asyncWrapper(chatController.getUnreadCount)
+);
+
 export default chatRoute;

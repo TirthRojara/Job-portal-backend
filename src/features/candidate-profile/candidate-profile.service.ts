@@ -204,6 +204,65 @@ class CandidateProfileService {
 
         return resumePath;
     }
+
+    public async getStates(currentUser: UserPayLoad) {
+        const candidate = await prisma.candidateProfile.findUnique({
+            where: { userId: currentUser.id },
+            select: { id: true }
+        });
+
+        if (!candidate) {
+            throw new BadRequestException('Candidate profile not found.');
+        }
+
+        const totalApplication = await prisma.apply.count({
+            where: { candidateProfileId: candidate.id }
+        });
+
+        const savedJob = await prisma.saveJob.count({
+            where: { candidateProfileId: candidate.id }
+        });
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const todayApply = await prisma.apply.count({
+            where: {
+                candidateProfileId: candidate.id,
+                applyDate: {
+                    gte: startOfToday,
+                    lte: endOfToday
+                }
+            }
+        });
+
+        const now = new Date();
+
+        const startOfWeek = new Date(now);
+        const day = startOfWeek.getDay();
+        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const startOfNextWeek = new Date(startOfWeek);
+        startOfNextWeek.setDate(startOfWeek.getDate() + 7);
+
+        const weeklyApply = await prisma.apply.count({
+            where: {
+                candidateProfileId: candidate.id,
+                applyDate: {
+                    gte: startOfWeek,
+                    lt: startOfNextWeek
+                }
+            }
+        });
+
+        return { totalApplication, savedJob, todayApply, weeklyApply };
+    }
 }
 
 export const candidateProfileService: CandidateProfileService = new CandidateProfileService();

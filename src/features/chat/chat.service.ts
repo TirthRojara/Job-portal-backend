@@ -577,6 +577,43 @@ class ChatService {
             callback?.({ error: 'Failed to markAsRead messages' });
         }
     }
+
+    public async getUnreadCount(currentUser: UserPayLoad, companyId?: number) {
+        if (currentUser.role === Role.CANDIDATE) {
+            const candidateProfile = await prisma.candidateProfile.findUnique({
+                where: { userId: currentUser.id },
+                select: { id: true }
+            });
+
+            if (!candidateProfile) throw new BadRequestException('Invalid user');
+
+            const count = await prisma.chat.count({
+                where: {
+                    candidateProfileId: candidateProfile.id,
+                    candidateUnreadCount: {
+                        gt: 0
+                    }
+                }
+            });
+
+            return count;
+        }
+
+        if (currentUser.role === Role.RECRUITER) {
+            if (!companyId) throw new BadRequestException('CompanyId required');
+
+            const count = await prisma.chat.count({
+                where: {
+                    companyId,
+                    companyUnreadCount: {
+                        gt: 0
+                    }
+                }
+            });
+
+            return count;
+        }
+    }
 }
 
 export const chatservice: ChatService = new ChatService();

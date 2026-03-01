@@ -49,6 +49,13 @@ companyRoute.delete('/me/:id', verifyUser, allowAccess('RECRUITER'), asyncWrappe
 
 companyRoute.delete('/:id', verifyUser, allowAccess('ADMIN'), asyncWrapper(companyController.removeByAdmin));
 
-companyRoute.get('/:companyId/view', verifyUser, allowAccess('RECRUITER'), asyncWrapper(companyController.getCompanyView));
+companyRoute.get(
+    '/:companyId/view',
+    verifyUser,
+    allowAccess('RECRUITER'),
+    asyncWrapper(companyController.getCompanyView)
+);
+
+companyRoute.get('/states/:companyId', verifyUser, allowAccess('RECRUITER'), asyncWrapper(companyController.getStates));
 
 export default companyRoute;

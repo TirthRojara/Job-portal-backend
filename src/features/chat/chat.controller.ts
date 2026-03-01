@@ -117,6 +117,19 @@ class ChatController {
             data: messages
         });
     }
+
+    public async getUnreadCount(req: Request, res: Response) {
+        const currentUser = req.currentUser;
+
+        const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
+
+        const unreadCount = await chatservice.getUnreadCount(currentUser, companyId);
+
+        return res.status(HTTP_STATUS.OK).json({
+            message: 'Get unread count successfully',
+            data: { unreadCount }
+        });
+    }
 }
 
 export const chatController: ChatController = new ChatController();

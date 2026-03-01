@@ -307,6 +307,36 @@ class CompanyService {
             console.log('lock relese: syncViewInDb for company');
         }
     }
+
+    public async getStates(currentUser: UserPayLoad, companyId: number) {
+        const activeJobPost = await prisma.job.count({
+            where: { postById: currentUser.id, companyId, status: 'ACTIVE' }
+        });
+
+        const totalJobPost = await prisma.job.count({
+            where: { postById: currentUser.id, companyId }
+        });
+
+        const companyTotalView = await this.getCompanyView(companyId, currentUser);
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const todayApplication = await prisma.apply.count({
+            where: {
+                companyId,
+                applyDate: {
+                    gte: startOfToday,
+                    lte: endOfToday
+                }
+            }
+        });
+
+        return { activeJobPost, totalJobPost, companyView: companyTotalView.totalViews, todayApplication}
+    }
 }
 
 export const companyService: CompanyService = new CompanyService();

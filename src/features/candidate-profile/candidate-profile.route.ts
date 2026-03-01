@@ -76,4 +76,11 @@ candidateProfileRoute.get(
     asyncWrapper(candidateProfileController.viewResumeForRecruiter)
 );
 
+candidateProfileRoute.get(
+    '/candidate/states',
+    verifyUser,
+    allowAccess(Role.CANDIDATE),
+    asyncWrapper(candidateProfileController.getStates)
+);
+
 export default candidateProfileRoute;
