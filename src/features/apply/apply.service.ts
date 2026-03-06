@@ -162,7 +162,9 @@ class ApplyService {
             const rows = await prisma.apply.findMany({
                 where: { candidateProfileId: condidateProfile.id },
                 orderBy: { applyDate: 'desc' },
-                take: 50 // how much application you want to cache
+                take: 50, // how much application you want to cache
+                include: { company: { select: { id: true, name: true } }, job: { select: { id: true, title: true } } },
+                omit: { companyId: true, jobId: true }
             });
             if (rows.length > 0) {
                 redisClient.rpush(
