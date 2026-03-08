@@ -13,6 +13,9 @@ import { IOAuthSignupLoginPayload, IRefreshToken, ISignUpPayload } from '../auth
 import { log } from '~/globals/helpers/log.helper';
 import { IUserUpdate } from './user.interface';
 import { profile } from 'console';
+import { redisClient } from '~/globals/cores/redis/redis.client';
+import Redis from 'ioredis';
+import { RedisKey } from '~/globals/constants/redis.constant';
 
 class UserService {
     // public async createUser(requestBody: any): Promise<User>{
@@ -158,7 +161,8 @@ class UserService {
     }
 
     public async getUserData(currentUser: UserPayLoad) {
-        // ‼️‼️ add redis cache here ‼️‼️
+        const cacheData = await redisClient.get(RedisKey.USER.USER(currentUser.id));
+        if (cacheData) return JSON.parse(cacheData);
 
         const user = await prisma.user.findUnique({
             where: { id: currentUser.id },
@@ -173,20 +177,28 @@ class UserService {
 
             const recruiter = { ...user, companyId: company[0].id };
 
+            redisClient
+                .set(RedisKey.USER.USER(currentUser.id), JSON.stringify({ recruiter }), 'EX', 7200)
+                .catch((err) => console.log('Redis getUserData set failed', err));
+
             return recruiter;
         }
 
         if (user?.role === 'CANDIDATE') {
             const candidateProfile = await prisma.candidateProfile.findUnique({
-                where: { userId: user.id},
-                select: { id: true}
-            })
+                where: { userId: user.id },
+                select: { id: true }
+            });
 
-            console.log({candidateProfile})
+            console.log({ candidateProfile });
 
-            const candidate = {...user, candidateProfileId: candidateProfile?.id || null}
+            const candidate = { ...user, candidateProfileId: candidateProfile?.id || null };
 
-            return candidate
+            redisClient
+                .set(RedisKey.USER.USER(currentUser.id), JSON.stringify({ candidate }), 'EX', 7200)
+                .catch((err) => console.log('Redis getUserData set failed', err));
+
+            return candidate;
         }
 
         // return user;

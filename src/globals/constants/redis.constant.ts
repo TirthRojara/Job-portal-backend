@@ -1,5 +1,6 @@
 export const RedisKey = {
     USER: {
+        USER: (id: number) => `user:${id}`,
         CANDIDATE_EDUCATION: (id: number | string) => `user:${id}:candidateEducation`,
         CANDIDATE_EXPERIENCE: (id: number | string) => `user:${id}:candidateExperience`,
         CANDIDATE_LANGUAGE: (id: number | string) => `user:${id}:candidateLanguage`,
