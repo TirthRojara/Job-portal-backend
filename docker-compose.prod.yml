@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+
+  api:
+    image: job-portal
+    container_name: job-portal-api
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+
+  redis:
+    image: redis:7
+    container_name: job-portal-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
