@@ -47,22 +47,33 @@ class TestService {
         //     }
         // });
 
-        const chats = await prisma.chat.findMany({
-            where: { companyId: 26 },
-            select: { candidateProfile: { select: { userId: true } } }
-        });
+        // const chats = await prisma.chat.findMany({
+        //     where: { companyId: 26 },
+        //     select: { candidateProfile: { select: { userId: true } } }
+        // });
 
-        console.log({ chats });
+        // console.log({ chats });
 
-        const relatedUserIds = new Set<number>();
+        // const relatedUserIds = new Set<number>();
 
-        chats.forEach((chat: any) => {
-            const otherUserId = chat.candidateProfile!.userId;
+        // chats.forEach((chat: any) => {
+        //     const otherUserId = chat.candidateProfile!.userId;
 
-            console.log({ otherUserId });
+        //     console.log({ otherUserId });
 
-            relatedUserIds.add(otherUserId);
-        });
+        //     relatedUserIds.add(otherUserId);
+        // });
+
+
+        // $ node -> v22.14.0
+        // docker pull node:22-alpine
+
+        // postgres:16
+        // docker pull postgres:16-alpine
+        
+        // redis:7-alpine
+        // docker pull redis:7-alpine
+
     }
 }
 
