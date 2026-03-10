@@ -9,7 +9,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    command: sh -c "npx prisma migrate deploy && npm run dev"
+    command: ["npm", "run", "dev"]
 
   postgres:
     image: postgres:16
