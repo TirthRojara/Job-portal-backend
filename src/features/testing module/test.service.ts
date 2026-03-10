@@ -5,6 +5,15 @@ import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.help
 import prisma from '~/prisma';
 // import { sendMail } from '~/globals/helpers/sendMail.helper';
 
+// CREATE IMAGE
+// docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache
+
+// COMPOSE
+// docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+//stop and remove the containers
+// docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+
 class TestService {
     public async test() {
         console.log('This is a test service method');
