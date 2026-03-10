@@ -8,7 +8,7 @@ import {
     UnauthorizedException
 } from '~/globals/cores/error.cores';
 import prisma from '~/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs'
 import { IOAuthSignupLoginPayload, IRefreshToken, ISignUpPayload } from '../auth/auth.interface';
 import { log } from '~/globals/helpers/log.helper';
 import { IUserUpdate } from './user.interface';

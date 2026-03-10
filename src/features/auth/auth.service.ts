@@ -1,5 +1,5 @@
 import prisma from '~/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import {

@@ -1,14 +1,15 @@
 # ---------- Stage 1: Build ----------
-# Using the FULL Node 22 image so OpenSSL is already installed
 FROM node:22-bookworm AS builder
 
 WORKDIR /app
 
-# Copy EVERYTHING (including your local Windows node_modules)
-COPY . .
-
-# Lock down Prisma so it doesn't try to fetch anything from the internet
+# Prevent Prisma from trying to download engines during build
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
+# Point Prisma to the engine we are copying from Windows
+ENV PRISMA_QUERY_ENGINE_BINARY=/app/node_modules/@prisma/engines/query-engine-debian-openssl-3.0.x
+
+# Copy EVERYTHING (including your node_modules with the Linux engine)
+COPY . .
 
 # Build TypeScript
 RUN npm run build
@@ -19,7 +20,11 @@ FROM node:22-bookworm
 
 WORKDIR /app
 
-# Copy all the ready-to-go files from the builder
+# Set these again for the production container
+ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
+ENV PRISMA_QUERY_ENGINE_BINARY=/app/node_modules/@prisma/engines/query-engine-debian-openssl-3.0.x
+
+# Copy files from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma

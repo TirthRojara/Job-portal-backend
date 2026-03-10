@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs'
 import { authService } from './auth.service';
 import HTTP_STATUS from '~/globals/constants/http.constant';
 // import { sendTokenToCookie } from '~/globals/helpers/cookie.helper';
