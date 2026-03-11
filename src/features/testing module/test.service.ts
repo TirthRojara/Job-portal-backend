@@ -14,6 +14,12 @@ import prisma from '~/prisma';
 //stop and remove the containers
 // docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
 
+// build image for push
+// docker build -t tirthrojara/job-portal:v1 .
+
+// push
+// docker push tirthrojara/job-portal:v1
+
 class TestService {
     public async test() {
         console.log('This is a test service method');
