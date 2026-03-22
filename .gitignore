@@ -3,4 +3,4 @@ dist/
 .env
 .env.test
 /generated/prisma
-.dockerignore
+
