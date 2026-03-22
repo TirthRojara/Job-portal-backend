@@ -59,7 +59,9 @@ class AuthController {
         res.cookie('email', user.email, {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN, 
             maxAge: 20 * 60 * 1000 // 10 minutes
         });
 
@@ -118,7 +120,9 @@ class AuthController {
         res.cookie('__secure-rtk', refreshToken, {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
             // maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
         });
@@ -127,7 +131,9 @@ class AuthController {
             httpOnly: true,
             secure: true,
             // secure: false, // only in dev
-            sameSite: 'strict',
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
         });
 
@@ -181,7 +187,9 @@ class AuthController {
         res.cookie('__secure-rtk', refreshToken, {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
         });
 
@@ -189,7 +197,9 @@ class AuthController {
             httpOnly: true,
             secure: true,
             // secure: false, // only in dev
-            sameSite: 'strict',
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: isRememberMe ? COOKIE_MAX_AGE.REFRESH.REMEMBER_ME : COOKIE_MAX_AGE.REFRESH.NORMAL
         });
 
@@ -299,7 +309,9 @@ class AuthController {
         res.cookie('email', user.email, {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: 20 * 60 * 1000 // 20 minutes
         });
 
@@ -336,7 +348,8 @@ class AuthController {
         res.cookie('__secure-reset-token', resetToken, {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: 20 * 60 * 1000, // 20 minutes
             path: '/' // ✅ CRITICAL: Add this
         });
@@ -394,7 +407,8 @@ class AuthController {
         res.clearCookie('__secure-reset-token', {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',
+            domain: process.env.COOKIE_DOMAIN,
             path: '/' // ✅ CRITICAL: Must match the 'Set' path exactly
         });
 
@@ -411,16 +425,18 @@ class AuthController {
 
         res.clearCookie('__secure-rtk', {
             httpOnly: true,
-            secure: true, // ← Match this
-            sameSite: 'strict', // ← Match this
-            path: '/' // ← Add this (defaults to current path)
+            secure: true, 
+            sameSite: 'none', 
+            path: '/', // (defaults to current path)
+            domain: process.env.COOKIE_DOMAIN, 
         });
 
         res.clearCookie('role', {
             httpOnly: true,
-            secure: true, // ← Match this
-            sameSite: 'strict', // ← Match this
-            path: '/' // ← Add this
+            secure: true, 
+            sameSite: 'none', 
+            path: '/', 
+            domain: process.env.COOKIE_DOMAIN,
         });
 
         await prisma.refreshToken.delete({
@@ -439,9 +455,10 @@ class AuthController {
 
         res.cookie('role', role, {
             httpOnly: true,
-            // secure: true,
-            secure: false, // only in dev
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
@@ -507,11 +524,13 @@ class GoogleAuthController {
 
         // store state as cookie
         res.cookie('oauth_role', role, {
-            secure: false, // set to false in localhost
-            path: '/',
             httpOnly: true,
+            secure: true,
+            path: '/',
             maxAge: 10 * 60 * 1000, // 10 min
-            sameSite: 'lax' // for dev mode
+            // sameSite: 'lax' // for dev mode
+            sameSite: 'none',
+            domain: process.env.COOKIE_DOMAIN
         });
 
         // store state as cookie
@@ -520,16 +539,18 @@ class GoogleAuthController {
             path: '/',
             httpOnly: true,
             maxAge: 10 * 60 * 1000, // 10 min
-            sameSite: 'lax' // for dev mode
+            sameSite: 'none', 
+            domain: process.env.COOKIE_DOMAIN
         });
 
         // store code verifier as cookie
         res.cookie('code_verifier', codeVerifier, {
-            secure: false, // set to false in localhost
+            secure: true, 
             path: '/',
             httpOnly: true,
             maxAge: 10 * 60 * 1000, // 10 min
-            sameSite: 'lax' // for dev mode
+            sameSite: 'none', // for dev mode
+            domain: process.env.COOKIE_DOMAIN
         });
 
         // res.redirect(url.toString());
@@ -611,15 +632,18 @@ class GoogleAuthController {
             res.cookie('__secure-rtk', refreshToken, {
                 httpOnly: true,
                 secure: true,
-                sameSite: 'strict',
+                sameSite: 'none',
+                path: '/',
+                domain: process.env.COOKIE_DOMAIN,
                 maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
             });
 
             res.cookie('role', user.role, {
                 httpOnly: true,
                 secure: true,
-                // secure: false, // only in dev
-                sameSite: 'strict',
+                sameSite: 'none',
+                path: '/',
+                domain: process.env.COOKIE_DOMAIN,
                 maxAge: COOKIE_MAX_AGE.REFRESH.NORMAL
             });
 
@@ -628,7 +652,7 @@ class GoogleAuthController {
 
             const lowercaseRole = user.role.toLowerCase();
 
-            res.redirect(`http://localhost:3000/dashboard/${lowercaseRole}`);
+            res.redirect(`https://${process.env.FRONTEND_URL}/dashboard/${lowercaseRole}`);
 
             // return res.status(HTTP_STATUS.OK).json({
             //     message: 'User verified successfully',
