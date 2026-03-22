@@ -8,6 +8,12 @@ ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 # Point Prisma to the engine we are copying from Windows
 ENV PRISMA_QUERY_ENGINE_BINARY=/app/node_modules/@prisma/engines/query-engine-debian-openssl-3.0.x
 
+# ✅ Step 1: Copy package files first
+COPY package*.json ./
+
+# ✅ Step 2: Install dependencies (IMPORTANT)
+RUN npm install
+
 # Copy EVERYTHING (including your node_modules with the Linux engine)
 COPY . .
 
