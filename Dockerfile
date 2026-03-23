@@ -1,42 +1,48 @@
 # ---------- Stage 1: Build ----------
-FROM node:22-bookworm AS builder
+FROM node:20-bookworm AS builder
 
 WORKDIR /app
 
-# Prevent Prisma from trying to download engines during build
+# Prevent Prisma auto generate during install
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
-# Point Prisma to the engine we are copying from Windows
-ENV PRISMA_QUERY_ENGINE_BINARY=/app/node_modules/@prisma/engines/query-engine-debian-openssl-3.0.x
 
-# ✅ Step 1: Copy package files first
+# Copy package files first (for caching)
 COPY package*.json ./
 
-# ✅ Step 2: Install dependencies (IMPORTANT)
-RUN npm install
+# Install dependencies (stable + fast)
+RUN npm cache clean --force && npm ci
 
-# Copy EVERYTHING (including your node_modules with the Linux engine)
+# Copy rest of the code
 COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Build TypeScript
 RUN npm run build
 
 
 # ---------- Stage 2: Production ----------
-FROM node:22-bookworm
+FROM node:20-bookworm
 
 WORKDIR /app
 
-# Set these again for the production container
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
-ENV PRISMA_QUERY_ENGINE_BINARY=/app/node_modules/@prisma/engines/query-engine-debian-openssl-3.0.x
 
-# Copy files from builder
-COPY --from=builder /app/node_modules ./node_modules
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev
+
+# Copy built files from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-COPY package*.json ./
+
+# Generate Prisma client for production
+RUN npx prisma generate
 
 EXPOSE 5000
 
-# Start server
+# Start your app
 CMD ["node", "dist/index.js"]
