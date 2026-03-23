@@ -8,7 +8,7 @@ import {
     UnauthorizedException
 } from '~/globals/cores/error.cores';
 import prisma from '~/prisma';
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
 import { IOAuthSignupLoginPayload, IRefreshToken, ISignUpPayload } from '../auth/auth.interface';
 import { log } from '~/globals/helpers/log.helper';
 import { IUserUpdate } from './user.interface';
@@ -178,7 +178,7 @@ class UserService {
             const recruiter = { ...user, companyId: company[0].id };
 
             redisClient
-                .set(RedisKey.USER.USER(currentUser.id), JSON.stringify({ recruiter }), 'EX', 7200)
+                .set(RedisKey.USER.USER(currentUser.id), JSON.stringify(recruiter), 'EX', 7200)
                 .catch((err) => console.log('Redis getUserData set failed', err));
 
             return recruiter;
@@ -195,7 +195,7 @@ class UserService {
             const candidate = { ...user, candidateProfileId: candidateProfile?.id || null };
 
             redisClient
-                .set(RedisKey.USER.USER(currentUser.id), JSON.stringify({ candidate }), 'EX', 7200)
+                .set(RedisKey.USER.USER(currentUser.id), JSON.stringify(candidate), 'EX', 7200)
                 .catch((err) => console.log('Redis getUserData set failed', err));
 
             return candidate;
