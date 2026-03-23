@@ -1,0 +1,43 @@
+name: Deploy Job-Portal Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout latest code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2️⃣ Deploy to EC2 via SSH
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "🚀 Starting deployment..."
+
+            cd ~/Job-portal-backend
+            
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Stopping existing containers..."
+            docker-compose -f docker-compose.ec2.yml down || true
+
+            echo "Cleaning unused images..."
+            docker image prune -af || true
+
+            echo "Building and starting containers..."
+            docker-compose -f docker-compose.ec2.yml up -d --build
+
+            echo "✅ Deployment completed!"
