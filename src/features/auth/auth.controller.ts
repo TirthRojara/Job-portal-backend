@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
 import { authService } from './auth.service';
 import HTTP_STATUS from '~/globals/constants/http.constant';
 // import { sendTokenToCookie } from '~/globals/helpers/cookie.helper';
@@ -61,7 +61,7 @@ class AuthController {
             secure: true,
             sameSite: 'none',
             path: '/',
-            domain: process.env.COOKIE_DOMAIN, 
+            domain: process.env.COOKIE_DOMAIN,
             maxAge: 20 * 60 * 1000 // 10 minutes
         });
 
@@ -425,18 +425,18 @@ class AuthController {
 
         res.clearCookie('__secure-rtk', {
             httpOnly: true,
-            secure: true, 
-            sameSite: 'none', 
+            secure: true,
+            sameSite: 'none',
             path: '/', // (defaults to current path)
-            domain: process.env.COOKIE_DOMAIN, 
+            domain: process.env.COOKIE_DOMAIN
         });
 
         res.clearCookie('role', {
             httpOnly: true,
-            secure: true, 
-            sameSite: 'none', 
-            path: '/', 
-            domain: process.env.COOKIE_DOMAIN,
+            secure: true,
+            sameSite: 'none',
+            path: '/',
+            domain: process.env.COOKIE_DOMAIN
         });
 
         await prisma.refreshToken.delete({
@@ -539,13 +539,13 @@ class GoogleAuthController {
             path: '/',
             httpOnly: true,
             maxAge: 10 * 60 * 1000, // 10 min
-            sameSite: 'none', 
+            sameSite: 'none',
             domain: process.env.COOKIE_DOMAIN
         });
 
         // store code verifier as cookie
         res.cookie('code_verifier', codeVerifier, {
-            secure: true, 
+            secure: true,
             path: '/',
             httpOnly: true,
             maxAge: 10 * 60 * 1000, // 10 min
