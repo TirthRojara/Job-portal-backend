@@ -10,7 +10,7 @@ ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 COPY package*.json ./
 
 # Install dependencies (stable + fast)
-RUN npm cache clean --force && npm ci
+RUN npm ci
 
 # Copy rest of the code
 COPY . .
@@ -29,18 +29,12 @@ WORKDIR /app
 
 ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
 
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --omit=dev
-
 # Copy built files from builder
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY package*.json ./
 
-# Generate Prisma client for production
-RUN npx prisma generate
 
 EXPOSE 5000
 

@@ -35,7 +35,7 @@ jobs:
             docker-compose -f docker-compose.ec2.yml down || true
 
             echo "Cleaning unused images..."
-            docker image prune -af || true
+            docker image prune -f || true
 
             echo "Building and starting containers..."
             docker-compose -f docker-compose.ec2.yml up -d --build
