@@ -509,6 +509,105 @@ class RazorpayService {
             throw new BadRequestException('Error in completing the subscription in payment gateway : ' + error);
         }
     }
+
+    // # Initial payment successful → status = CREATED -> now server down
+    // when server up again with in 24h then razorpay will handle it
+    // But if server is down for more  than 24h
+    // then fetch current status from razorpay and update in DB accordingly.
+    // cron job which will run
+
+    public async reconcileCreatedSubscriptions() {
+        const BATCH_SIZE = 50;
+        const CONCURRENCY = 5; // 🔥 limit parallel requests
+
+        const subs = await prisma.subscription.findMany({
+            where: {
+                status: SubscriptionStatus.CREATED,
+                createdAt: {
+                    gte: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) // last 2 days
+                }
+            },
+            take: BATCH_SIZE
+        });
+
+        // helper to process one subscription
+        const processSub = async (sub: any) => {
+            try {
+                const razorpaySub = await razorpay.subscriptions.fetch(sub.razorpaySubscriptionId);
+
+                if (razorpaySub.status === 'active') {
+                    await prisma.subscription.update({
+                        where: { id: sub.id },
+                        data: {
+                            status: SubscriptionStatus.ACTIVE,
+                            paidCount: razorpaySub.paid_count,
+                            nextPayment: new Date(razorpaySub.charge_at * 1000)
+                        }
+                    });
+
+                    console.log('Recovered CREATED subscription:', sub.id);
+                }
+            } catch (error) {
+                console.error('CREATED reconciliation error:', sub.id, error);
+            }
+        };
+
+        // 🔥 chunk into batches (concurrency control)
+        for (let i = 0; i < subs.length; i += CONCURRENCY) {
+            const chunk = subs.slice(i, i + CONCURRENCY);
+
+            await Promise.all(chunk.map(processSub));
+        }
+    }
+
+    // # Renewal failed webhook due to our server down
+    // when server up again with in 24h then razorpay will handle it
+    // But if server is down for more  than 24h
+    // check only those subscriptions which nextPayment <= now() 
+    // [next payment date should be future date or null, if next payment date is past date then it means renewal failed and we need to update the status in DB]
+    // fetch current status from razorpay and update in DB accordingly.
+    // cron job which will run
+
+    public async reconcileRenewals() {
+    const BATCH_SIZE = 50;
+    const CONCURRENCY = 5;
+
+    const subs = await prisma.subscription.findMany({
+        where: {
+            status: SubscriptionStatus.ACTIVE,
+            nextPayment: {
+                lte: new Date()
+            }
+        },
+        take: BATCH_SIZE
+    });
+
+    const processSub = async (sub: any) => {
+        try {
+            const razorpaySub = await razorpay.subscriptions.fetch(
+                sub.razorpaySubscriptionId
+            );
+
+            await prisma.subscription.update({
+                where: { id: sub.id },
+                data: {
+                    status: razorpaySub.status.toUpperCase() as SubscriptionStatus,
+                    paidCount: razorpaySub.paid_count,
+                    nextPayment: new Date(razorpaySub.charge_at * 1000)
+                }
+            });
+
+            console.log('Reconciled renewal subscription:', sub.id);
+        } catch (error) {
+            console.error('Renewal reconciliation error:', sub.id, error);
+        }
+    };
+
+    for (let i = 0; i < subs.length; i += CONCURRENCY) {
+        const chunk = subs.slice(i, i + CONCURRENCY);
+        await Promise.all(chunk.map(processSub));
+    }
+}
 }
 
 export const razorpayService: RazorpayService = new RazorpayService();
