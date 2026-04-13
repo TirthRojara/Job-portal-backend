@@ -19,6 +19,8 @@ export const initSocket = (httpServer: any): SocketIOServer => {
             ? ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev']
             : ['https://jobportal.tirthrojara.in'];
 
+    console.log('Allowed CORS origins:', allowedOrigins);
+
     io = new SocketIOServer(httpServer, {
         cors: {
             // origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins

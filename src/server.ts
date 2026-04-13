@@ -28,6 +28,8 @@ class Server {
                 ? ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev']
                 : ['https://jobportal.tirthrojara.in'];
 
+        console.log('Allowed CORS origins:', allowedOrigins);
+
         this.app.use(
             cors({
                 // origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'],
