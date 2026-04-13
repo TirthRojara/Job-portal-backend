@@ -14,10 +14,16 @@ import { chatservice } from './features/chat/chat.service';
 let io: SocketIOServer | null = null;
 
 export const initSocket = (httpServer: any): SocketIOServer => {
+    const allowedOrigins =
+        process.env.NODE_ENV === 'development'
+            ? ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev']
+            : ['https://jobportal.tirthrojara.in'];
+
     io = new SocketIOServer(httpServer, {
         cors: {
             // origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'], // allow both frontend origins
-            origin: ['https://jobportal.tirthrojara.in'], 
+            // origin: ['https://jobportal.tirthrojara.in'],
+            origin: allowedOrigins,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
             credentials: true
         }

@@ -23,10 +23,16 @@ class Server {
     constructor() {
         this.app = express();
 
+        const allowedOrigins =
+            process.env.NODE_ENV === 'development'
+                ? ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev']
+                : ['https://jobportal.tirthrojara.in'];
+
         this.app.use(
             cors({
                 // origin: ['http://localhost:3000', 'https://conchate-moistly-lucy.ngrok-free.dev'],
-                origin: ['https://jobportal.tirthrojara.in'],
+                // origin: ['https://jobportal.tirthrojara.in'],
+                origin: allowedOrigins,
                 methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
                 credentials: true // Important for cookies/sessions
             })
