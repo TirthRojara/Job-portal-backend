@@ -1,8 +1,7 @@
 import { Company } from '@prisma/client';
 import { Resend } from 'resend';
-import { BadRequestException } from '~/globals/cores/error.cores';
-import { getPaginationAndFilter } from '~/globals/helpers/pagination-filter.helper';
-import prisma from '~/prisma';
+import { getAI } from '~/globals/cores/gemini/gemini.provider';
+
 // import { sendMail } from '~/globals/helpers/sendMail.helper';
 
 // CREATE IMAGE
@@ -21,6 +20,7 @@ import prisma from '~/prisma';
 // docker push tirthrojara/job-portal:v1
 
 class TestService {
+
     public async test() {
         console.log('This is a test service method');
 
@@ -79,16 +79,19 @@ class TestService {
         //     relatedUserIds.add(otherUserId);
         // });
 
+        // async function main() {
+            const ai = await getAI();
+            const response = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                // model: 'gemini-3.1-flash-lite-preview',
+                contents: 'give me job profile summary in 3,4 lines'
+            });
+            console.log(response.text);
+        // }
 
-        // $ node -> v22.14.0
-        // docker pull node:22-alpine
+        // main();
 
-        // postgres:16
-        // docker pull postgres:16-alpine
-        
-        // redis:7-alpine
-        // docker pull redis:7-alpine
-
+        return response.text
     }
 }
 

@@ -21,6 +21,7 @@ import userRouter from '~/features/user/user.route';
 import testRoute from '~/features/testing module/test.route';
 import chatRoute from '~/features/chat/chat.route';
 import paymentDataRoute from '~/features/payment/payment.route';
+import aiRoute from '~/features/ai/ai.route';
 
 function appRoutes(app: Application) {
     app.use('/api/v1/testing', testRoute);
@@ -44,6 +45,7 @@ function appRoutes(app: Application) {
     app.use('/api/v1/razorpay', paymentroute.razorpayRoute);
     app.use('/api/v1/payment', paymentDataRoute);
     app.use('/api/v1/chat', chatRoute);
+    app.use('/api/v1/ai', aiRoute)
 
     // app.use('/api/v1/razorpay/webhook', express.raw({ type: 'application/json' }), paymentroute.razorpayWebhookRoute);
 }

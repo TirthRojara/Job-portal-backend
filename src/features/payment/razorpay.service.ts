@@ -563,51 +563,49 @@ class RazorpayService {
     // # Renewal failed webhook due to our server down
     // when server up again with in 24h then razorpay will handle it
     // But if server is down for more  than 24h
-    // check only those subscriptions which nextPayment <= now() 
+    // check only those subscriptions which nextPayment <= now()
     // [next payment date should be future date or null, if next payment date is past date then it means renewal failed and we need to update the status in DB]
     // fetch current status from razorpay and update in DB accordingly.
     // cron job which will run
 
     public async reconcileRenewals() {
-    const BATCH_SIZE = 50;
-    const CONCURRENCY = 5;
+        const BATCH_SIZE = 50;
+        const CONCURRENCY = 5;
 
-    const subs = await prisma.subscription.findMany({
-        where: {
-            status: SubscriptionStatus.ACTIVE,
-            nextPayment: {
-                lte: new Date()
-            }
-        },
-        take: BATCH_SIZE
-    });
-
-    const processSub = async (sub: any) => {
-        try {
-            const razorpaySub = await razorpay.subscriptions.fetch(
-                sub.razorpaySubscriptionId
-            );
-
-            await prisma.subscription.update({
-                where: { id: sub.id },
-                data: {
-                    status: razorpaySub.status.toUpperCase() as SubscriptionStatus,
-                    paidCount: razorpaySub.paid_count,
-                    nextPayment: new Date(razorpaySub.charge_at * 1000)
+        const subs = await prisma.subscription.findMany({
+            where: {
+                status: SubscriptionStatus.ACTIVE,
+                nextPayment: {
+                    lte: new Date()
                 }
-            });
+            },
+            take: BATCH_SIZE
+        });
 
-            console.log('Reconciled renewal subscription:', sub.id);
-        } catch (error) {
-            console.error('Renewal reconciliation error:', sub.id, error);
+        const processSub = async (sub: any) => {
+            try {
+                const razorpaySub = await razorpay.subscriptions.fetch(sub.razorpaySubscriptionId);
+
+                await prisma.subscription.update({
+                    where: { id: sub.id },
+                    data: {
+                        status: razorpaySub.status.toUpperCase() as SubscriptionStatus,
+                        paidCount: razorpaySub.paid_count,
+                        nextPayment: new Date(razorpaySub.charge_at * 1000)
+                    }
+                });
+
+                console.log('Reconciled renewal subscription:', sub.id);
+            } catch (error) {
+                console.error('Renewal reconciliation error:', sub.id, error);
+            }
+        };
+
+        for (let i = 0; i < subs.length; i += CONCURRENCY) {
+            const chunk = subs.slice(i, i + CONCURRENCY);
+            await Promise.all(chunk.map(processSub));
         }
-    };
-
-    for (let i = 0; i < subs.length; i += CONCURRENCY) {
-        const chunk = subs.slice(i, i + CONCURRENCY);
-        await Promise.all(chunk.map(processSub));
     }
-}
 }
 
 export const razorpayService: RazorpayService = new RazorpayService();
