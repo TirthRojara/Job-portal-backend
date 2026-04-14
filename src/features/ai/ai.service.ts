@@ -2,6 +2,7 @@
 
 import { getAI } from '~/globals/cores/gemini/gemini.provider';
 import { Input, Mode, ProcessedInput } from './ai.types';
+import { CustomErrorException } from '~/globals/cores/error.cores';
 
 class AiService {
     private MAX_LINES = 10;
@@ -10,26 +11,41 @@ class AiService {
     // -------------------- MAIN STREAM FUNCTION FOR CANDIDATE SUMMARY --------------------
 
     public async *generateCandidateSummaryStream(input: Input) {
-        const ai = await getAI();
+        try {
+            const ai = await getAI();
 
-        const processed = this.preprocess(input);
-        const prompt = this.buildPrompt(processed);
+            const processed = this.preprocess(input);
+            const prompt = this.buildPrompt(processed);
 
-        const stream = await ai.models.generateContentStream({
-            model: 'gemini-3-flash-preview',
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-        });
+            const stream = await ai.models.generateContentStream({
+                model: 'gemini-3-flash-preview',
+                // model: 'gemini-3.1-flash-lite-preview',
+                // model: 'gemini-2.5-flash',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }]
+            });
 
-        for await (const chunk of stream) {
-            const text = chunk?.text;
-            if (text && text.trim()) {
-                const clean = text
-                    .replace(/\*\*/g, '') // remove bold
-                    .replace(/#+\s*/g, '') // remove headings
-                    .replace(/```/g, ''); // remove code blocks
+            for await (const chunk of stream) {
+                const text = chunk?.text;
+                if (text && text.trim()) {
+                    const clean = text
+                        .replace(/\*\*/g, '') // remove bold
+                        .replace(/#+\s*/g, '') // remove headings
+                        .replace(/```/g, ''); // remove code blocks
 
-                yield clean;
+                    // console.log('AI CHUNK:', { clean });
+                    yield clean;
+                }
             }
+        } catch (error: any) {
+            console.error('AI STREAM ERROR:', error);
+
+            // 🔥 Handle quota error
+            if (error?.status === 429) {
+                throw new CustomErrorException('AI usage limit reached. Please try again later.', 429);
+            }
+
+            // 🔥 Generic fallback
+            throw new CustomErrorException('Failed to generate summary. Please try again.', 500);
         }
     }
 

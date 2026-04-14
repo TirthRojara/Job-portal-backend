@@ -13,7 +13,8 @@ aiRoute.post(
     verifyUser,
     allowAccess('CANDIDATE'),
     validateSchema(aiCandidateSummarySchema),
-    asyncWrapper(aicontroller.generateCandidateSummary)
+    aicontroller.generateCandidateSummary
+    // asyncWrapper(aicontroller.generateCandidateSummary)
 );
 
 export default aiRoute;
