@@ -535,7 +535,7 @@ class GoogleAuthController {
 
         // store state as cookie
         res.cookie('state', state, {
-            secure: false, // set to false in localhost
+            secure: true, // set to false in localhost
             path: '/',
             httpOnly: true,
             maxAge: 10 * 60 * 1000, // 10 min
