@@ -19,9 +19,9 @@ class AiService {
             const prompt = this.buildPrompt(processed);
 
             const stream = await ai.models.generateContentStream({
-                model: 'gemini-3-flash-preview',
+                // model: 'gemini-3-flash-preview',
                 // model: 'gemini-3.1-flash-lite-preview',
-                // model: 'gemini-2.5-flash',
+                model: 'gemini-2.5-flash',
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
@@ -251,9 +251,9 @@ ${OUTPUT_RULES}
         const prompt = buildJobPrompt(input);
 
         const stream = await ai.models.generateContentStream({
-            model: 'gemini-3-flash-preview',
+            // model: 'gemini-3-flash-preview',
             // model: 'gemini-3.1-flash-lite-preview',
-            // model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }]
         });
 
@@ -268,6 +268,8 @@ ${OUTPUT_RULES}
             // Try parsing partial JSON safely
             const parsed = this.tryParseJSON(buffer);
 
+            console.log('STREAM CHUNK:', { text, parsed });
+
             if (parsed) {
                 // stream field by field
                 yield* this.streamFields(parsed);
@@ -276,9 +278,22 @@ ${OUTPUT_RULES}
         }
     }
 
+    // private tryParseJSON(text: string) {
+    //     try {
+    //         return JSON.parse(text);
+    //     } catch {
+    //         return null;
+    //     }
+    // }
+
     private tryParseJSON(text: string) {
         try {
-            return JSON.parse(text);
+            const cleaned = text
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
+                .trim();
+
+            return JSON.parse(cleaned);
         } catch {
             return null;
         }
