@@ -150,7 +150,7 @@ class AiController {
                 // console.log('chunk:', chunk , '\n');
 
                 res.write(chunk + '\n'); // newline-separated JSON
-                await new Promise(r => setTimeout(r, 100));
+                await new Promise(r => setTimeout(r, 150));
             }
 
             res.end();

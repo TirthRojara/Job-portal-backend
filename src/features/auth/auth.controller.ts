@@ -652,7 +652,7 @@ class GoogleAuthController {
 
             const lowercaseRole = user.role.toLowerCase();
 
-            res.redirect(`https://${process.env.FRONTEND_URL}/dashboard/${lowercaseRole}`);
+            res.redirect(`${process.env.FRONTEND_URL}/dashboard/${lowercaseRole}`);
 
             // return res.status(HTTP_STATUS.OK).json({
             //     message: 'User verified successfully',
