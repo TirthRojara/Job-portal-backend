@@ -19,3 +19,16 @@ export interface ProcessedInput {
   promptPart?: string;
 }
 
+export interface GenerateJobPayload {
+  prompt?: string;
+  title?: string;
+  description?: string;
+  responsibilities?: string;
+  requirements?: string;
+}
+
+export type JobField =
+  | "title"
+  | "description"
+  | "responsibilities"
+  | "requirements";

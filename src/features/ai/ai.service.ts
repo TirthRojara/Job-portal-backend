@@ -1,8 +1,9 @@
 // modules/ai/ai.service.ts
 
 import { getAI } from '~/globals/cores/gemini/gemini.provider';
-import { Input, Mode, ProcessedInput } from './ai.types';
+import { GenerateJobPayload, Input, JobField, Mode, ProcessedInput } from './ai.types';
 import { CustomErrorException } from '~/globals/cores/error.cores';
+import { buildJobPrompt } from './ai.prompt';
 
 class AiService {
     private MAX_LINES = 10;
@@ -240,6 +241,77 @@ ${OUTPUT_RULES}
             default:
                 return '';
         }
+    }
+
+    // ------------------ Recruiter Job Post Generation -------------------
+
+    public async *generateJobStream(input: GenerateJobPayload) {
+        const ai = await getAI();
+
+        const prompt = buildJobPrompt(input);
+
+        const stream = await ai.models.generateContentStream({
+            model: 'gemini-3-flash-preview',
+            // model: 'gemini-3.1-flash-lite-preview',
+            // model: 'gemini-2.5-flash',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
+
+        let buffer = '';
+
+        for await (const chunk of stream) {
+            const text = chunk?.text;
+            if (!text) continue;
+
+            buffer += text;
+
+            // Try parsing partial JSON safely
+            const parsed = this.tryParseJSON(buffer);
+
+            if (parsed) {
+                // stream field by field
+                yield* this.streamFields(parsed);
+                buffer = ''; // reset after success
+            }
+        }
+    }
+
+    private tryParseJSON(text: string) {
+        try {
+            return JSON.parse(text);
+        } catch {
+            return null;
+        }
+    }
+
+    private async *streamFields(data: Record<string, string>) {
+        const fields: JobField[] = ['title', 'description', 'responsibilities', 'requirements'];
+
+        for (const field of fields) {
+            const value = data[field];
+            if (!value) continue;
+
+            // chunking text manually (simulate streaming per field)
+            const chunks = this.splitIntoChunks(value, 20);
+
+            for (const chunk of chunks) {
+                yield JSON.stringify({
+                    field,
+                    text: chunk
+                });
+            }
+        }
+    }
+
+    private splitIntoChunks(text: string, size: number) {
+        const words = text.split(' ');
+        const chunks: string[] = [];
+
+        for (let i = 0; i < words.length; i += size) {
+            chunks.push(words.slice(i, i + size).join(' ') + ' ');
+        }
+
+        return chunks;
     }
 }
 
