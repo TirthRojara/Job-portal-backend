@@ -20,8 +20,8 @@ class AiService {
 
             const stream = await ai.models.generateContentStream({
                 // model: 'gemini-3-flash-preview',
-                // model: 'gemini-3.1-flash-lite-preview',
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3.1-flash-lite-preview',
+                // model: 'gemini-2.5-flash',
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
 
@@ -252,8 +252,8 @@ ${OUTPUT_RULES}
 
         const stream = await ai.models.generateContentStream({
             // model: 'gemini-3-flash-preview',
-            // model: 'gemini-3.1-flash-lite-preview',
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.1-flash-lite-preview',
+            // model: 'gemini-2.5-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }]
         });
 
