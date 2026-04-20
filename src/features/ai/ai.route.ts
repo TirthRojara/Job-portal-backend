@@ -14,7 +14,6 @@ aiRoute.post(
     allowAccess('CANDIDATE'),
     validateSchema(aiCandidateSummarySchema),
     aicontroller.generateCandidateSummary
-    // asyncWrapper(aicontroller.generateCandidateSummary)
 );
 
 aiRoute.post(
